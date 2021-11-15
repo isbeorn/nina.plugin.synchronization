@@ -1,0 +1,60 @@
+﻿<ResourceDictionary
+    x:Class="Synchronization.Options"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:instruction="clr-namespace:Synchronization.Instructions"
+    xmlns:mini="clr-namespace:NINA.View.Sequencer.MiniSequencer;assembly=NINA.Sequencer"
+    xmlns:nina="clr-namespace:NINA.View.Sequencer;assembly=NINA.Sequencer"
+    xmlns:ns="clr-namespace:NINA.Core.Locale;assembly=NINA.Core">
+    <GeometryGroup x:Key="SyncDitherSVG">
+        <PathGeometry Figures="M 33.916,0.150665L 33.7187,9.01467L 26.3067,13.8747L 34.672,16.8013L 37.0053,25.3533L 42.3747,18.296L 51.2293,18.724L 50.932,18.296L 46.176,11.4373L 49.3173,3.14534L 40.828,5.69733M 34.4,1.20267L 40.7187,6.27066L 48.468,3.93733L 45.604,11.5107L 50.2133,18.1613L 42.1293,17.776L 37.2293,24.2133L 35.0987,16.4053L 27.4573,13.7333L 34.224,9.296" />
+        <PathGeometry Figures="M 8.24934,23.6667L 8.036,33.276L 1.58946e-006,38.552L 9.072,41.724L 11.6093,51L 17.4267,43.348L 27.0307,43.8067L 26.0053,42.3227L 21.552,35.9053L 24.9573,26.916L 15.7493,29.6813M 9.948,27.3067L 15.364,31.656L 22.02,29.6507L 19.5627,36.1507L 23.5147,41.8587L 16.5773,41.5253L 12.3747,47.0573L 10.5413,40.3533L 3.98933,38.0627L 9.79067,34.2493" />
+        <PathGeometry Figures="M 38.5307,11.4947L 13.4,36.5053L 14.812,37.9213L 39.9427,12.9107" />
+        <PathGeometry Figures="M 36.14,46.38C 34.104,44.744 32.8067,42.2387 32.8067,39.4267C 32.8067,35.2707 35.6507,31.7867 39.5,30.796L 39.5,28.4947C 34.4053,29.5307 30.572,34.0307 30.572,39.4267C 30.572,42.76 32.0413,45.7493 34.3587,47.7907C 36.1507,49.4627 37.2653,47.2333 36.14,46.38 Z M 49.0053,30.9787C 47.864,29.948 46.192,31.62 47.2853,32.448C 49.3387,34.0827 50.6507,36.5987 50.6507,39.4267C 50.6507,43.5827 47.8067,47.0627 43.9573,48.0573L 43.9573,50.3533C 49.052,49.3227 52.8853,44.8227 52.8853,39.4267C 52.8853,36.0467 51.38,33.02 49.0053,30.9787 Z M 40.484,32.724L 44.1147,30.5467C 44.64,30.2293 44.6453,29.7133 44.1187,29.396L 40.452,27.1813C 39.9267,26.8587 39.5,27.104 39.5053,27.7187L 39.52,32.1773C 39.5253,32.796 39.952,33.036 40.484,32.724 Z M 43.0053,46.14L 39.3387,48.3587C 38.812,48.6773 38.8173,49.192 39.3427,49.5107L 42.9733,51.6813C 43.5,52 43.932,51.7547 43.9373,51.14L 43.9573,46.6773C 43.9573,46.0627 43.5307,45.8227 43.0053,46.14 Z " />
+    </GeometryGroup>
+
+    <DataTemplate x:Key="Synchronization_Options">
+        <TextBlock Text="No Options available" />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type instruction:SynchronizedDither}">
+        <nina:SequenceBlockView DataContext="{Binding}">
+            <nina:SequenceBlockView.SequenceItemContent>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock VerticalAlignment="Center" Text="{ns:Loc LblAfterExposures}" />
+                    <TextBox
+                        MinWidth="40"
+                        Margin="5,0,0,0"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Text="{Binding AfterExposures}" />
+                </StackPanel>
+            </nina:SequenceBlockView.SequenceItemContent>
+            <nina:SequenceBlockView.SequenceItemProgressContent>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock VerticalAlignment="Center" Text="{ns:Loc LblExposures}" />
+                    <TextBlock
+                        Margin="5,0,0,0"
+                        VerticalAlignment="Center"
+                        Text="{Binding ProgressExposures}" />
+                    <TextBlock Text="/" />
+                    <TextBlock VerticalAlignment="Center" Text="{Binding AfterExposures}" />
+                </StackPanel>
+            </nina:SequenceBlockView.SequenceItemProgressContent>
+        </nina:SequenceBlockView>
+    </DataTemplate>
+    <DataTemplate x:Key="Synchronization.Instructions.SynchronizedDither_Mini">
+        <mini:MiniCondition>
+            <mini:MiniCondition.ConditionProgressContent>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock VerticalAlignment="Center" Text="{ns:Loc LblExposures}" />
+                    <TextBlock
+                        Margin="5,0,0,0"
+                        VerticalAlignment="Center"
+                        Text="{Binding ProgressExposures}" />
+                    <TextBlock Text="/" />
+                    <TextBlock VerticalAlignment="Center" Text="{Binding AfterExposures}" />
+                </StackPanel>
+            </mini:MiniCondition.ConditionProgressContent>
+        </mini:MiniCondition>
+    </DataTemplate>
+</ResourceDictionary>
