@@ -17,7 +17,7 @@
         <TextBlock Text="No Options available" />
     </DataTemplate>
     <DataTemplate DataType="{x:Type instruction:SynchronizedDither}">
-        <nina:SequenceBlockView DataContext="{Binding}">
+        <nina:SequenceBlockView>
             <nina:SequenceBlockView.SequenceItemContent>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock VerticalAlignment="Center" Text="{ns:Loc LblAfterExposures}" />
