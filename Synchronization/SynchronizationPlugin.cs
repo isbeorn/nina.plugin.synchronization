@@ -2,11 +2,16 @@
 using NINA.Core.Utility;
 using NINA.Plugin;
 using NINA.Plugin.Interfaces;
+using NINA.Profile;
+using NINA.Profile.Interfaces;
 using NINA.WPF.Base.Interfaces.Mediator;
 using Synchronization.Service;
 using System;
+using System.ComponentModel;
 using System.ComponentModel.Composition;
 using System.IO.Pipes;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
@@ -19,9 +24,13 @@ namespace Synchronization {
     public class SynchronizationPlugin : PluginBase {
 
         [ImportingConstructor]
-        public SynchronizationPlugin(IApplicationStatusMediator statusMediator) {
+        public SynchronizationPlugin(IProfileService profileService, IApplicationStatusMediator statusMediator) {
             mutexid = $"Global\\{this.Identifier}";
             this.statusMediator = statusMediator;
+
+            var assembly = this.GetType().Assembly;
+            var id = assembly.GetCustomAttribute<GuidAttribute>().Value;
+            this.pluginSettings = new PluginOptionsAccessor(profileService, Guid.Parse(id));
         }
 
         private NamedPipeServer pipe;
@@ -30,6 +39,7 @@ namespace Synchronization {
 
         private string mutexid;
         private IApplicationStatusMediator statusMediator;
+        private PluginOptionsAccessor pluginSettings;
 
         private async Task StartServerIfNotStarted() {
             var allowEveryoneRule = new MutexAccessRule(new SecurityIdentifier(WellKnownSidType.WorldSid, null), MutexRights.FullControl, AccessControlType.Allow);
@@ -158,6 +168,17 @@ namespace Synchronization {
                 // assume it doesn't exist
                 return false;
             }
+        }
+        public int DitherWaitTimeout {
+            get => pluginSettings.GetValueInt32(nameof(DitherWaitTimeout), 300);
+            set {
+                pluginSettings.SetValueInt32(nameof(DitherWaitTimeout), value);
+                RaisePropertyChanged();
+            }
+        }
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void RaisePropertyChanged([CallerMemberName] string propertyName = null) {
+            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 

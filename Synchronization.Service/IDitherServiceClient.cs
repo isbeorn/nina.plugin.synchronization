@@ -11,8 +11,8 @@ namespace Synchronization.Service {
         void UnregisterSync();
         Task Register();
         Task Unregister();
-        Task<bool> WaitForSync(CancellationToken ct);
-        Task WaitForDither(CancellationToken ct);
+        Task<bool> WaitForSync(CancellationToken ct, TimeSpan timeout);
+        Task WaitForDither(CancellationToken ct, TimeSpan timeout);
         Task SetDitherInProgress(CancellationToken ct);
         Task SetDitherCompleted(CancellationToken ct);
         Task AnnounceToSync(bool canLead, CancellationToken ct);

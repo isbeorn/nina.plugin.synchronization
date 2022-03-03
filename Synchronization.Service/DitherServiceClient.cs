@@ -56,8 +56,8 @@ namespace Synchronization.Service {
         /// Wait until the server sends that all clients are synced up
         /// </summary>
         /// <returns></returns>
-        public async Task<bool> WaitForSync(CancellationToken ct) {
-            var result = await base.WaitForSyncAsync(new ClientIdRequest() { Clientid = id.ToString() }, null, deadline: DateTime.UtcNow.AddSeconds(300), cancellationToken: ct);
+        public async Task<bool> WaitForSync(CancellationToken ct, TimeSpan timeout) {
+            var result = await base.WaitForSyncAsync(new ClientIdRequest() { Clientid = id.ToString() }, null, deadline: DateTime.UtcNow.AddSeconds(timeout.TotalSeconds), cancellationToken: ct);
             if(string.IsNullOrEmpty(result.LeaderId)) { throw new Exception("No instance could lead the dither! Make sure at least one instance is connected to a guider!"); }
             return result.LeaderId == id.ToString();
         }
@@ -66,8 +66,8 @@ namespace Synchronization.Service {
         /// Wait until the server sends that the dither has been completed by the leader
         /// </summary>
         /// <returns></returns>
-        public async Task WaitForDither(CancellationToken ct) {
-            await base.WaitForDitherAsync(new ClientIdRequest() { Clientid = id.ToString() }, null, deadline: DateTime.UtcNow.AddSeconds(300), cancellationToken: ct);
+        public async Task WaitForDither(CancellationToken ct, TimeSpan timeout) {
+            await base.WaitForDitherAsync(new ClientIdRequest() { Clientid = id.ToString() }, null, deadline: DateTime.UtcNow.AddSeconds(timeout.TotalSeconds), cancellationToken: ct);
         }
 
         /// <summary>

@@ -4,6 +4,7 @@ using NINA.Core.Locale;
 using NINA.Core.Model;
 using NINA.Core.Utility;
 using NINA.Equipment.Interfaces.Mediator;
+using NINA.Profile;
 using NINA.Profile.Interfaces;
 using NINA.Sequencer.Container;
 using NINA.Sequencer.SequenceItem;
@@ -18,6 +19,8 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.ComponentModel.Composition;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -41,6 +44,10 @@ namespace Synchronization.Instructions {
             this.profileService = profileService;
             AfterExposures = 1;
             TriggerRunner.Add(new Dither(guiderMediator, profileService));
+
+            var assembly = this.GetType().Assembly;
+            var id = assembly.GetCustomAttribute<GuidAttribute>().Value;
+            this.pluginSettings = new PluginOptionsAccessor(profileService, Guid.Parse(id));
         }
 
         private SynchronizedDither(SynchronizedDither cloneMe) : this(cloneMe.guiderMediator, cloneMe.history, cloneMe.profileService) {
@@ -111,6 +118,8 @@ namespace Synchronization.Instructions {
         }
 
         private CancellationTokenSource heartbeatCts;
+        private PluginOptionsAccessor pluginSettings;
+
         private Task StartHeartbeat() {
             return Task.Run(async () => {
                 using (heartbeatCts = new CancellationTokenSource()) {
@@ -136,12 +145,13 @@ namespace Synchronization.Instructions {
             try {
                 if (AfterExposures > 0) {
                     try {
+                        var waitTimeout = TimeSpan.FromSeconds(pluginSettings.GetValueInt32(nameof(SynchronizationPlugin.DitherWaitTimeout), 300));
                         lastTriggerId = history.ImageHistory.Count;
                         Logger.Debug("Waiting for synchronization");
                         progress?.Report(new ApplicationStatus() { Status = "Waiting for synchronization" });
                         var info = guiderMediator.GetInfo();
                         await client.AnnounceToSync(info.Connected, token);
-                        var isLeader = await client.WaitForSync(token);
+                        var isLeader = await client.WaitForSync(token, waitTimeout);
 
                         progress?.Report(new ApplicationStatus() { Status = "All Synchronized" });
                         if (isLeader) {
@@ -166,7 +176,7 @@ namespace Synchronization.Instructions {
                         } else {
                             Logger.Debug("Waiting for leader to dither");
                             progress?.Report(new ApplicationStatus() { Status = "Waiting for leader to dither" });
-                            await client.WaitForDither(token);
+                            await client.WaitForDither(token, waitTimeout);
                         }
                     } catch (RpcException e) {
                         if (e.StatusCode == StatusCode.Cancelled) {

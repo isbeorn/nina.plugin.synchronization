@@ -5,6 +5,7 @@
     xmlns:instruction="clr-namespace:Synchronization.Instructions"
     xmlns:mini="clr-namespace:NINA.View.Sequencer.MiniSequencer;assembly=NINA.Sequencer"
     xmlns:nina="clr-namespace:NINA.View.Sequencer;assembly=NINA.Sequencer"
+    xmlns:ninactrl="clr-namespace:NINACustomControlLibrary;assembly=NINACustomControlLibrary"
     xmlns:ns="clr-namespace:NINA.Core.Locale;assembly=NINA.Core">
     <GeometryGroup x:Key="SyncDitherSVG">
         <PathGeometry Figures="M 33.916,0.150665L 33.7187,9.01467L 26.3067,13.8747L 34.672,16.8013L 37.0053,25.3533L 42.3747,18.296L 51.2293,18.724L 50.932,18.296L 46.176,11.4373L 49.3173,3.14534L 40.828,5.69733M 34.4,1.20267L 40.7187,6.27066L 48.468,3.93733L 45.604,11.5107L 50.2133,18.1613L 42.1293,17.776L 37.2293,24.2133L 35.0987,16.4053L 27.4573,13.7333L 34.224,9.296" />
@@ -14,7 +15,24 @@
     </GeometryGroup>
 
     <DataTemplate x:Key="Synchronization_Options">
-        <TextBlock Text="No Options available" />
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock VerticalAlignment="Center" Text="Dither Max. Wait Timeout" />
+
+            <ninactrl:UnitTextBox
+                Grid.Column="1"
+                MinWidth="80"
+                Margin="5,0,0,0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                Text="{Binding DitherWaitTimeout}"
+                Unit="s" />
+        </Grid>
     </DataTemplate>
     <DataTemplate DataType="{x:Type instruction:SynchronizedDither}">
         <nina:SequenceBlockView>
