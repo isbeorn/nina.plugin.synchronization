@@ -7,7 +7,7 @@
 
 ## Version 0.2.3.0
 
-- Refactored the code for more general puprose sync instructions
+- Refactored the code for more general purpose sync instructions
 - Added a "Synchronized Wait" instruction that can be used to sync up all instances to wait until each one hits the instruction. This can be used for example when a new target is started.
 - Make sure that all sequences are running before hitting the synchronization instructions, as only on sequence startup each instance registers itself to the synchronization service
 
