@@ -104,8 +104,11 @@ namespace Synchronization {
                     while (!cts.IsCancellationRequested) {
                         try {
                             await Task.Delay(1000, cts.Token);
+                            var status = SyncServiceServer.Instance.GetStatus();
 
-                            statusMediator.StatusUpdate(new NINA.Core.Model.ApplicationStatus() { Status = $"{SyncServiceServer.Instance.Status} {(SyncServiceServer.Instance.Status == "idle" || SyncServiceServer.Instance.Status == "No instance could lead the dither! Make sure at least one instance is connected to a guider!" ? string.Empty : symbols[roller++ % 4])}", Source = "Sync Service" });
+                            bool showActivitySymbols = status == SyncServiceServer.IdleString || status.StartsWith("No instance could lead");
+
+                            statusMediator.StatusUpdate(new NINA.Core.Model.ApplicationStatus() { Status = $"{status} {(showActivitySymbols ? symbols[roller++ % 4] : string.Empty)}", Source = "Sync Service" });
                         } catch (OperationCanceledException) {
                             Logger.Info("Stopping server heartbeat");
 

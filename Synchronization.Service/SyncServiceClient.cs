@@ -65,7 +65,7 @@ namespace Synchronization.Service {
         /// <returns></returns>
         public async Task<bool> WaitForSyncStart(string source, CancellationToken ct, TimeSpan timeout) {
             var result = await base.WaitForSyncStartAsync(new ClientIdRequest() { Clientid = id.ToString(), Source = source }, null, deadline: DateTime.UtcNow.AddSeconds(timeout.TotalSeconds), cancellationToken: ct);
-            if(string.IsNullOrEmpty(result.LeaderId)) { throw new Exception("No instance could lead the sync! Make sure at least one instance is connected to a guider!"); }
+            if(string.IsNullOrEmpty(result.LeaderId)) { throw new Exception($"No instance could lead the synchronized {source}!"); }
             return result.LeaderId == id.ToString();
         }
 

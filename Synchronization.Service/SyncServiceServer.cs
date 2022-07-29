@@ -3,6 +3,7 @@ using Grpc.Core;
 using NINA.Core.Utility;
 using NINA.Synchronization.Service.Sync;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -30,37 +31,53 @@ namespace Synchronization.Service {
     /// Ping is required to determine keepalives
     /// </summary>
     public class SyncServiceServer : SyncService.SyncServiceBase {
+        public static readonly string IdleString = "Idle";
         private static readonly Lazy<SyncServiceServer> lazy = new Lazy<SyncServiceServer>(() => new SyncServiceServer());
         public static SyncServiceServer Instance { get => lazy.Value; }
 
-        public string Status { 
-            get {
-                lock(lockobj) {
-                    return this.status;
+        private Dictionary<string, string> statusBySource = new Dictionary<string, string>();
+
+
+        private Dictionary<string, SortedDictionary<string, DateTime>> registeredClients { get; }
+        private Dictionary<string, SortedDictionary<string, bool>> clientsWaitingForSync { get; }
+        private ConcurrentDictionary<string, bool> syncInProgress;
+        private ConcurrentDictionary<string, string> syncLeader;
+
+
+        private void SetStatus(string source, string message) {
+            lock(lockobj) {
+                if (statusBySource.ContainsKey(source) && string.IsNullOrWhiteSpace(message)) {
+                    statusBySource.Remove(source);
+                    return;
                 }
-            } 
-            private set {
-                lock (lockobj) {
-                    this.status = value;
+
+                if (statusBySource.ContainsKey(source)) {
+                    statusBySource[source] = message;
+                } else {
+                    statusBySource.Add(source, message);
+                }
+            }            
+        }
+
+        public string GetStatus() {
+            lock(lockobj) { 
+                if(statusBySource.Keys.Count > 0) {
+                    return string.Join(" | ", statusBySource.Values);
+                } else {
+                    return IdleString;
                 }
             }
         }
 
-        private string syncLeader;
-
         private SyncServiceServer() {
             registeredClients = new Dictionary<string, SortedDictionary<string, DateTime>>();
             clientsWaitingForSync = new Dictionary<string, SortedDictionary<string, bool>>();
-            syncInProgress = false;
-            status = "idle";
+            statusBySource = new Dictionary<string, string>();
+            syncInProgress = new ConcurrentDictionary<string, bool>();            
+            syncLeader = new ConcurrentDictionary<string, string>();
         }
 
-        private Dictionary<string, SortedDictionary<string, DateTime>> registeredClients { get; }
-        private Dictionary<string, SortedDictionary<string, bool>> clientsWaitingForSync { get; }
-        private bool syncInProgress;
-
         private object lockobj = new object();
-        private string status;
 
         private bool IsRegistered(string id, string source) {
             lock (lockobj) {
@@ -191,30 +208,30 @@ namespace Synchronization.Service {
 
             var clientsForSync = NumberOfClientsWaitingForSync(request.Source);
             var totalClients = NumberOfTotalClients(request.Source);
-            Status = $"{clientsForSync}/{totalClients} clients waiting for {request.Source}";
-            syncInProgress = true;
+            SetStatus(request.Source, $"{clientsForSync}/{totalClients} clients waiting for {request.Source}");
+            syncInProgress[request.Source] = true;
             return new Empty();
         }
 
         public override async Task<LeaderReply> WaitForSyncStart(ClientIdRequest request, ServerCallContext context) {
             Logger.Debug($"Client {request.Clientid} is waiting to sync");
 
-            while (syncInProgress && ClientsAreWaitingForSync(request.Source)) {
+            while (syncInProgress[request.Source] && ClientsAreWaitingForSync(request.Source)) {
                 await Task.Delay(1000);
             }
 
             lock(lockobj) {
-                syncLeader = ElectSyncLeader(request.Source);
-                Logger.Debug($"Client {syncLeader} is leading sync");
-                if(string.IsNullOrEmpty(syncLeader)) {
-                    Status = $"No instance could lead the {request.Source} sync!";
-                    syncInProgress = false;
-                    syncLeader = string.Empty;
+                syncLeader[request.Source] = ElectSyncLeader(request.Source);
+                Logger.Debug($"Client {syncLeader[request.Source]} is leading sync");
+                if(string.IsNullOrEmpty(syncLeader[request.Source])) {
+                    SetStatus(request.Source, $"No instance could lead the {request.Source} sync!");
+                    syncInProgress[request.Source] = false;
+                    syncLeader[request.Source] = string.Empty;
                     ClearClientWaitingForSync(request.Source);
                 }
             }
 
-            return new LeaderReply() { LeaderId = syncLeader };
+            return new LeaderReply() { LeaderId = syncLeader[request.Source] };
         }
 
         private bool ClientsAreWaitingForSync(string source) {
@@ -228,15 +245,15 @@ namespace Synchronization.Service {
         }
 
         public override async Task<Empty> SetSyncInProgress(ClientIdRequest request, ServerCallContext context) {
-            Status = $"{request.Source} sync in progress";
-            syncLeader = request.Clientid;
+            SetStatus(request.Source, $"{request.Source} sync in progress");
+            syncLeader[request.Source] = request.Clientid;
             return new Empty();
         }
 
         public override async Task<Empty> WaitForSyncCompleted(ClientIdRequest request, ServerCallContext context) {
             Logger.Debug($"Client {request.Clientid} is announcing to want to sync ${request.Source}");
 
-            while (syncInProgress && SyncLeaderIsAlive(request.Source)) {
+            while (syncInProgress[request.Source] && SyncLeaderIsAlive(request.Source)) {
                 await Task.Delay(1000);
             }
 
@@ -248,12 +265,12 @@ namespace Synchronization.Service {
                 if (!registeredClients.ContainsKey(source)) {
                     registeredClients[source] = new SortedDictionary<string, DateTime>();
                 }
-                if (registeredClients[source].ContainsKey(syncLeader) && registeredClients[source][syncLeader] > DateTime.UtcNow.AddSeconds(-10)) {
+                if (registeredClients[source].ContainsKey(syncLeader[source]) && registeredClients[source][syncLeader[source]] > DateTime.UtcNow.AddSeconds(-10)) {
                     return true;
                 } else {
                     // The sync leader is dead
-                    syncInProgress = false;
-                    syncLeader = string.Empty;
+                    syncInProgress[source] = false;
+                    syncLeader[source] = string.Empty;
                     ClearClientWaitingForSync(source);
                     return false;
                 }
@@ -263,11 +280,11 @@ namespace Synchronization.Service {
 
         public override async Task<Empty> SetSyncCompleted(ClientIdRequest request, ServerCallContext context) {
             Logger.Debug($"Client {request.Clientid} is setting sync to be complete");
-            syncInProgress = false;
-            syncLeader = string.Empty;
+            syncInProgress[request.Source] = false;
+            syncLeader[request.Source] = string.Empty;
             ClearClientWaitingForSync(request.Source);
 
-            Status = $"idle";
+            SetStatus(request.Source, string.Empty);
 
             return new Empty();
         }
