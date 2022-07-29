@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## Version 0.2.4.0
+
+- Prevent types of sync instructions to interfer with each other. E.g. Sync Dither to not continue when another instance hits Sync Wait
+- Report Status individually per instruction type. E.g. Sync Dither and Sync Wait will be shown separately if they are hit concurrently for whatever reason
+
 ## Version 0.2.3.0
 
 - Refactored the code for more general puprose sync instructions
