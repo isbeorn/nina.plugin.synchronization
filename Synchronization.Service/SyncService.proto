@@ -1,20 +1,20 @@
 syntax = "proto3";
 
-option csharp_namespace = "NINA.Synchronization.Service.Dither";
+option csharp_namespace = "NINA.Synchronization.Service.Sync";
 
 package NINA.Synchronization.Service;
 
 import "google/protobuf/empty.proto";
 
-service DitherService {
+service SyncService {
 	rpc Ping (ClientIdRequest) returns (PingReply);
 	rpc Register (ClientIdRequest) returns (google.protobuf.Empty);
 	rpc Unregister (ClientIdRequest) returns (google.protobuf.Empty);
 	rpc AnnounceToSync (AnnounceToSyncRequest) returns (google.protobuf.Empty);
-	rpc WaitForSync (ClientIdRequest) returns (LeaderReply);
-	rpc WaitForDither (ClientIdRequest) returns (google.protobuf.Empty);
-	rpc SetDitherInProgress (ClientIdRequest) returns (google.protobuf.Empty);
-	rpc SetDitherCompleted (ClientIdRequest) returns (google.protobuf.Empty);
+	rpc WaitForSyncStart (ClientIdRequest) returns (LeaderReply);
+	rpc WaitForSyncCompleted (ClientIdRequest) returns (google.protobuf.Empty);
+	rpc SetSyncInProgress (ClientIdRequest) returns (google.protobuf.Empty);
+	rpc SetSyncCompleted (ClientIdRequest) returns (google.protobuf.Empty);
 }
 
 message ClientIdRequest {

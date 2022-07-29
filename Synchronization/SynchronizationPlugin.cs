@@ -59,7 +59,7 @@ namespace Synchronization {
                         }
 
                         try {
-                            var pipeName = "NINA.Synchronization.Service.Dither";
+                            var pipeName = "NINA.Synchronization.Service.Sync";
 
                             if (!NamedPipeExist(pipeName)) {
                                 var user = WindowsIdentity.GetCurrent().User;
@@ -69,7 +69,7 @@ namespace Synchronization {
                                 security.SetGroup(user);
 
                                 pipe = new NamedPipeServer(pipeName, new NamedPipeServerOptions() { PipeSecurity = security });
-                                NINA.Synchronization.Service.Dither.DitherService.BindService(pipe.ServiceBinder, DitherServiceServer.Instance);
+                                NINA.Synchronization.Service.Sync.SyncService.BindService(pipe.ServiceBinder, SyncServiceServer.Instance);
                                 pipe.Start();
                                 isServer = true;
                                 Logger.Info($"Started synchronization plugin server on pipe {pipeName}");
@@ -105,7 +105,7 @@ namespace Synchronization {
                         try {
                             await Task.Delay(1000, cts.Token);
 
-                            statusMediator.StatusUpdate(new NINA.Core.Model.ApplicationStatus() { Status = $"{DitherServiceServer.Instance.Status} {(DitherServiceServer.Instance.Status == "idle" || DitherServiceServer.Instance.Status == "No instance could lead the dither! Make sure at least one instance is connected to a guider!" ? string.Empty : symbols[roller++ % 4])}", Source = "Sync Service" });
+                            statusMediator.StatusUpdate(new NINA.Core.Model.ApplicationStatus() { Status = $"{SyncServiceServer.Instance.Status} {(SyncServiceServer.Instance.Status == "idle" || SyncServiceServer.Instance.Status == "No instance could lead the dither! Make sure at least one instance is connected to a guider!" ? string.Empty : symbols[roller++ % 4])}", Source = "Sync Service" });
                         } catch (OperationCanceledException) {
                             Logger.Info("Stopping server heartbeat");
 

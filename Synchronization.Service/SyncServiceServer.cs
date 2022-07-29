@@ -1,7 +1,7 @@
 ﻿using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using NINA.Core.Utility;
-using NINA.Synchronization.Service.Dither;
+using NINA.Synchronization.Service.Sync;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,9 +29,9 @@ namespace Synchronization.Service {
     /// 
     /// Ping is required to determine keepalives
     /// </summary>
-    public class DitherServiceServer : DitherService.DitherServiceBase {
-        private static readonly Lazy<DitherServiceServer> lazy = new Lazy<DitherServiceServer>(() => new DitherServiceServer());
-        public static DitherServiceServer Instance { get => lazy.Value; }
+    public class SyncServiceServer : SyncService.SyncServiceBase {
+        private static readonly Lazy<SyncServiceServer> lazy = new Lazy<SyncServiceServer>(() => new SyncServiceServer());
+        public static SyncServiceServer Instance { get => lazy.Value; }
 
         public string Status { 
             get {
@@ -46,18 +46,18 @@ namespace Synchronization.Service {
             }
         }
 
-        private string ditherLeader;
+        private string syncLeader;
 
-        private DitherServiceServer() {
+        private SyncServiceServer() {
             registeredClients = new SortedDictionary<string, DateTime>();
             clientsWaitingForSync = new SortedDictionary<string, bool>();
-            ditherInProgress = false;
+            syncInProgress = false;
             status = "idle";
         }
 
         private SortedDictionary<string, DateTime> registeredClients { get; }
         private SortedDictionary<string, bool> clientsWaitingForSync { get; }
-        private bool ditherInProgress;
+        private bool syncInProgress;
 
         private object lockobj = new object();
         private string status;
@@ -91,7 +91,7 @@ namespace Synchronization.Service {
             }
         }
 
-        private string ElectDitherLeader() {
+        private string ElectSyncLeader() {
             lock (lockobj) {
                 return clientsWaitingForSync.Where(x => x.Value == true && registeredClients.Where(r => r.Key == x.Key && r.Value > DateTime.UtcNow.AddSeconds(-10)).Select(y => y.Key) != null).Select(kvp => kvp.Key).FirstOrDefault();
             }
@@ -127,7 +127,7 @@ namespace Synchronization.Service {
 
         public override async Task<Empty> Register(ClientIdRequest request, ServerCallContext context) {
             if (!IsRegistered(request.Clientid)) {
-                Logger.Info($"Client {request.Clientid} registered for sync dither");
+                Logger.Info($"Client {request.Clientid} registered for sync");
                 AddClient(request.Clientid);
             }
             return new Empty();
@@ -135,7 +135,7 @@ namespace Synchronization.Service {
 
         public override async Task<Empty> Unregister(ClientIdRequest request, ServerCallContext context) {
             if (IsRegistered(request.Clientid)) {
-                Logger.Info($"Client {request.Clientid} unregistered sync dither");
+                Logger.Info($"Client {request.Clientid} unregistered sync");
                 RemoveClient(request.Clientid);
             }
             return new Empty();
@@ -150,29 +150,29 @@ namespace Synchronization.Service {
             var clientsForSync = NumberOfClientsWaitingForSync();
             var totalClients = NumberOfTotalClients();
             Status = $"{clientsForSync}/{totalClients} clients waiting";
-            ditherInProgress = true;
+            syncInProgress = true;
             return new Empty();
         }
 
-        public override async Task<LeaderReply> WaitForSync(ClientIdRequest request, ServerCallContext context) {
+        public override async Task<LeaderReply> WaitForSyncStart(ClientIdRequest request, ServerCallContext context) {
             Logger.Debug($"Client {request.Clientid} is waiting to sync");
 
-            while (ditherInProgress && ClientsAreWaitingForSync()) {
+            while (syncInProgress && ClientsAreWaitingForSync()) {
                 await Task.Delay(1000);
             }
 
             lock(lockobj) {
-                ditherLeader = ElectDitherLeader();
-                Logger.Debug($"Client {ditherLeader} is leading sync dither");
-                if(string.IsNullOrEmpty(ditherLeader)) {
-                    Status = "No instance could lead the dither! Make sure at least one instance is connected to a guider!";
-                    ditherInProgress = false;
-                    ditherLeader = string.Empty;
+                syncLeader = ElectSyncLeader();
+                Logger.Debug($"Client {syncLeader} is leading sync");
+                if(string.IsNullOrEmpty(syncLeader)) {
+                    Status = "No instance could lead the sync!";
+                    syncInProgress = false;
+                    syncLeader = string.Empty;
                     ClearClientWaitingForSync();
                 }
             }
 
-            return new LeaderReply() { LeaderId = ditherLeader };
+            return new LeaderReply() { LeaderId = syncLeader };
         }
 
         private bool ClientsAreWaitingForSync() {
@@ -182,30 +182,30 @@ namespace Synchronization.Service {
             }
         }
 
-        public override async Task<Empty> SetDitherInProgress(ClientIdRequest request, ServerCallContext context) {
-            Status = $"Dither in progress";
-            ditherLeader = request.Clientid;
+        public override async Task<Empty> SetSyncInProgress(ClientIdRequest request, ServerCallContext context) {
+            Status = $"Sync in progress";
+            syncLeader = request.Clientid;
             return new Empty();
         }
 
-        public override async Task<Empty> WaitForDither(ClientIdRequest request, ServerCallContext context) {
-            Logger.Debug($"Client {request.Clientid} is announcing to want to dither");
+        public override async Task<Empty> WaitForSyncCompleted(ClientIdRequest request, ServerCallContext context) {
+            Logger.Debug($"Client {request.Clientid} is announcing to want to sync");
 
-            while (ditherInProgress && DitherLeaderIsAlive()) {
+            while (syncInProgress && SyncLeaderIsAlive()) {
                 await Task.Delay(1000);
             }
 
             return new Empty();
         }
 
-        public bool DitherLeaderIsAlive() {
+        public bool SyncLeaderIsAlive() {
             lock(lockobj) {
-                if(registeredClients.ContainsKey(ditherLeader) && registeredClients[ditherLeader] > DateTime.UtcNow.AddSeconds(-10)) {
+                if(registeredClients.ContainsKey(syncLeader) && registeredClients[syncLeader] > DateTime.UtcNow.AddSeconds(-10)) {
                     return true;
                 } else {
-                    // The dither leader is dead
-                    ditherInProgress = false;
-                    ditherLeader = string.Empty;
+                    // The sync leader is dead
+                    syncInProgress = false;
+                    syncLeader = string.Empty;
                     ClearClientWaitingForSync();
                     return false;
                 }
@@ -213,10 +213,10 @@ namespace Synchronization.Service {
             }
         }
 
-        public override async Task<Empty> SetDitherCompleted(ClientIdRequest request, ServerCallContext context) {
-            Logger.Debug($"Client {request.Clientid} is setting dither to be complete");
-            ditherInProgress = false;
-            ditherLeader = string.Empty;
+        public override async Task<Empty> SetSyncCompleted(ClientIdRequest request, ServerCallContext context) {
+            Logger.Debug($"Client {request.Clientid} is setting sync to be complete");
+            syncInProgress = false;
+            syncLeader = string.Empty;
             ClearClientWaitingForSync();
 
             Status = $"idle";

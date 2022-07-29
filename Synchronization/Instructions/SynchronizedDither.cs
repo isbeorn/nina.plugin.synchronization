@@ -94,48 +94,27 @@ namespace Synchronization.Instructions {
         }
 
         public override void AfterParentChanged() {
-            if (ItemUtility.IsInRootContainer(Parent) && this.Parent.Status == NINA.Core.Enum.SequenceEntityStatus.RUNNING) {
-                SequenceBlockInitialize();
+            var root = ItemUtility.GetRootContainer(this.Parent);
+            if (root?.Status == NINA.Core.Enum.SequenceEntityStatus.RUNNING) {
+                Initialize();
             } else {
-                SequenceBlockTeardown();
+                Teardown();
             }
         }
 
-        private IDitherServiceClient client {
-            get => DitherServiceClient.Instance;
+        private ISyncServiceClient client {
+            get => SyncServiceClient.Instance;
         }
 
-        public override void SequenceBlockInitialize() {
+        public override void Initialize() {
             client.RegisterSync();
-            _ = StartHeartbeat();
         }
 
-        public override void SequenceBlockTeardown() {
+        public override void Teardown() {
             client.UnregisterSync();
-            try {
-                heartbeatCts?.Cancel();
-            } catch(Exception) { }
         }
 
-        private CancellationTokenSource heartbeatCts;
         private PluginOptionsAccessor pluginSettings;
-
-        private Task StartHeartbeat() {
-            return Task.Run(async () => {
-                using (heartbeatCts = new CancellationTokenSource()) {
-                    while (!heartbeatCts.IsCancellationRequested) {
-                        try {
-                            await Task.Delay(1000, heartbeatCts.Token);
-                            var resp = await DitherServiceClient.Instance.Ping(heartbeatCts.Token);
-                        } catch (OperationCanceledException) {
-                            Logger.Info("Stopping heartbeat");
-                        } catch (Exception ex) {
-                            Logger.Error("An error occurred while pinging the server", ex);
-                        }
-                    }
-                }
-            });
-        }
 
         public int ProgressExposures {
             get => AfterExposures > 0 ? history.ImageHistory.Count % AfterExposures : 0;
@@ -151,32 +130,32 @@ namespace Synchronization.Instructions {
                         progress?.Report(new ApplicationStatus() { Status = "Waiting for synchronization" });
                         var info = guiderMediator.GetInfo();
                         await client.AnnounceToSync(info.Connected, token);
-                        var isLeader = await client.WaitForSync(token, waitTimeout);
+                        var isLeader = await client.WaitForSyncStart(token, waitTimeout);
 
                         progress?.Report(new ApplicationStatus() { Status = "All Synchronized" });
                         if (isLeader) {
                             try {
                                 Logger.Debug("This instance leads the dither");
-                                await client.SetDitherInProgress(token);
+                                await client.SetSyncInProgress(token);
                                 progress?.Report(new ApplicationStatus() { Status = "This instance leads the dither" });
                                 await TriggerRunner.Run(progress, token);
                                 Logger.Debug("Marking dither as complete");
-                                await client.SetDitherCompleted(token);
+                                await client.SetSyncComplete(token);
                             } catch (RpcException e) {
                                 if (e.StatusCode == StatusCode.Cancelled) {
                                     Logger.Debug("The dither was cancelled - marking dither as complete");
-                                    await client.SetDitherCompleted(new CancellationToken());
+                                    await client.SetSyncComplete(new CancellationToken());
                                 }
                             } catch (OperationCanceledException) {
                                 Logger.Debug("The dither was cancelled - marking dither as complete");
-                                await client.SetDitherCompleted(new CancellationToken());
+                                await client.SetSyncComplete(new CancellationToken());
                             }
 
                             progress?.Report(new ApplicationStatus() { Status = "Dither is complete" });
                         } else {
                             Logger.Debug("Waiting for leader to dither");
                             progress?.Report(new ApplicationStatus() { Status = "Waiting for leader to dither" });
-                            await client.WaitForDither(token, waitTimeout);
+                            await client.WaitForSyncComplete(token, waitTimeout);
                         }
                     } catch (RpcException e) {
                         if (e.StatusCode == StatusCode.Cancelled) {
