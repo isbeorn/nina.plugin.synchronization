@@ -19,11 +19,13 @@ service SyncService {
 
 message ClientIdRequest {
 	string clientid = 1;
+	string source = 2;
 }
 
 message AnnounceToSyncRequest {
 	string clientid = 1;
 	bool canlead = 2;
+	string source = 3;
 }
 
 message PingReply {

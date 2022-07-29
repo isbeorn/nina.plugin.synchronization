@@ -25,8 +25,8 @@ namespace Synchronization.Service {
         /// <summary>
         /// Register the client against the sync service
         /// </summary>
-        public void RegisterSync() {
-            base.Register(new ClientIdRequest() { Clientid = id.ToString() }, null, deadline: DateTime.UtcNow.AddSeconds(5));
+        public void RegisterSync(string source) {
+            base.Register(new ClientIdRequest() { Clientid = id.ToString(), Source = source }, null, deadline: DateTime.UtcNow.AddSeconds(5));
             _ = StartHeartbeat();
         }
 
@@ -38,24 +38,24 @@ namespace Synchronization.Service {
         /// <summary>
         /// Remove the client from the sync service
         /// </summary>
-        public void UnregisterSync() {
-            base.Unregister(new ClientIdRequest() { Clientid = id.ToString() }, null, deadline: DateTime.UtcNow.AddSeconds(5));
+        public void UnregisterSync(string source) {
+            base.Unregister(new ClientIdRequest() { Clientid = id.ToString(), Source = source }, null, deadline: DateTime.UtcNow.AddSeconds(5));
             StopHeartbeat();
         }
 
         /// <summary>
         /// Register the client against the sync service
         /// </summary>
-        public async Task Register() {
-            await base.RegisterAsync(new ClientIdRequest() { Clientid = id.ToString() }, null, deadline: DateTime.UtcNow.AddSeconds(5));
+        public async Task Register(string source) {
+            await base.RegisterAsync(new ClientIdRequest() { Clientid = id.ToString(), Source = source }, null, deadline: DateTime.UtcNow.AddSeconds(5));
             _ = StartHeartbeat();
         }
 
         /// <summary>
         /// Remove the client from the sync service
         /// </summary>
-        public async Task Unregister() {
-            await base.UnregisterAsync(new ClientIdRequest() { Clientid = id.ToString() }, null, deadline: DateTime.UtcNow.AddSeconds(5));
+        public async Task Unregister(string source) {
+            await base.UnregisterAsync(new ClientIdRequest() { Clientid = id.ToString(), Source = source }, null, deadline: DateTime.UtcNow.AddSeconds(5));
             StopHeartbeat();
         }
 
@@ -63,8 +63,8 @@ namespace Synchronization.Service {
         /// Wait until the server sends that all clients are synced up
         /// </summary>
         /// <returns></returns>
-        public async Task<bool> WaitForSyncStart(CancellationToken ct, TimeSpan timeout) {
-            var result = await base.WaitForSyncStartAsync(new ClientIdRequest() { Clientid = id.ToString() }, null, deadline: DateTime.UtcNow.AddSeconds(timeout.TotalSeconds), cancellationToken: ct);
+        public async Task<bool> WaitForSyncStart(string source, CancellationToken ct, TimeSpan timeout) {
+            var result = await base.WaitForSyncStartAsync(new ClientIdRequest() { Clientid = id.ToString(), Source = source }, null, deadline: DateTime.UtcNow.AddSeconds(timeout.TotalSeconds), cancellationToken: ct);
             if(string.IsNullOrEmpty(result.LeaderId)) { throw new Exception("No instance could lead the sync! Make sure at least one instance is connected to a guider!"); }
             return result.LeaderId == id.ToString();
         }
@@ -73,28 +73,28 @@ namespace Synchronization.Service {
         /// Wait until the server sends that the sync has been completed by the leader
         /// </summary>
         /// <returns></returns>
-        public async Task WaitForSyncComplete(CancellationToken ct, TimeSpan timeout) {
-            await base.WaitForSyncCompletedAsync(new ClientIdRequest() { Clientid = id.ToString() }, null, deadline: DateTime.UtcNow.AddSeconds(timeout.TotalSeconds), cancellationToken: ct);
+        public async Task WaitForSyncComplete(string source, CancellationToken ct, TimeSpan timeout) {
+            await base.WaitForSyncCompletedAsync(new ClientIdRequest() { Clientid = id.ToString(), Source = source }, null, deadline: DateTime.UtcNow.AddSeconds(timeout.TotalSeconds), cancellationToken: ct);
         }
 
         /// <summary>
         /// Send to the server that the leader has started the sync
         /// </summary>
         /// <returns></returns>
-        public async Task SetSyncInProgress(CancellationToken ct) {
-            await base.SetSyncInProgressAsync(new ClientIdRequest() { Clientid = id.ToString() }, null, deadline: DateTime.UtcNow.AddSeconds(5), cancellationToken: ct);
+        public async Task SetSyncInProgress(string source, CancellationToken ct) {
+            await base.SetSyncInProgressAsync(new ClientIdRequest() { Clientid = id.ToString(), Source = source }, null, deadline: DateTime.UtcNow.AddSeconds(5), cancellationToken: ct);
         }
 
         /// <summary>
         /// Send to the server that the leader has finished the sync
         /// </summary>
         /// <returns></returns>
-        public async Task SetSyncComplete(CancellationToken ct) {
-            await base.SetSyncCompletedAsync(new ClientIdRequest() { Clientid = id.ToString() }, null, deadline: DateTime.UtcNow.AddSeconds(5), cancellationToken: ct);
+        public async Task SetSyncComplete(string source, CancellationToken ct) {
+            await base.SetSyncCompletedAsync(new ClientIdRequest() { Clientid = id.ToString(), Source = source }, null, deadline: DateTime.UtcNow.AddSeconds(5), cancellationToken: ct);
         }
 
-        public async Task AnnounceToSync(bool canLead, CancellationToken ct) {
-            await base.AnnounceToSyncAsync(new AnnounceToSyncRequest() { Clientid = id.ToString(), Canlead = canLead }, null, deadline: DateTime.UtcNow.AddSeconds(5), cancellationToken: ct);
+        public async Task AnnounceToSync(string source, bool canLead, CancellationToken ct) {
+            await base.AnnounceToSyncAsync(new AnnounceToSyncRequest() { Clientid = id.ToString(), Source = source, Canlead = canLead }, null, deadline: DateTime.UtcNow.AddSeconds(5), cancellationToken: ct);
         }
 
         public async Task<string> Ping(CancellationToken ct) {

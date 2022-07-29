@@ -53,11 +53,11 @@ namespace Synchronization.Instructions {
         }
 
         public override void Initialize() {
-            client.RegisterSync();
+            client.RegisterSync(nameof(SynchronizedWait));
         }
 
         public override void Teardown() {
-            client.UnregisterSync();
+            client.UnregisterSync(nameof(SynchronizedWait));
         }
 
         private ISyncServiceClient client {
@@ -71,31 +71,31 @@ namespace Synchronization.Instructions {
                 Logger.Debug("Waiting for synchronization");
                 progress?.Report(new ApplicationStatus() { Status = "Waiting for synchronization" });
 
-                await client.AnnounceToSync(true, token);
+                await client.AnnounceToSync(nameof(SynchronizedWait), true, token);
 
-                var isLeader = await client.WaitForSyncStart(token, waitTimeout);
+                var isLeader = await client.WaitForSyncStart(nameof(SynchronizedWait), token, waitTimeout);
 
                 progress?.Report(new ApplicationStatus() { Status = "All Synchronized" });
 
                 if (isLeader) {
                     try {
-                        await client.SetSyncInProgress(token);
-                        await client.SetSyncComplete(token);
+                        await client.SetSyncInProgress(nameof(SynchronizedWait), token);
+                        await client.SetSyncComplete(nameof(SynchronizedWait), token);
 
                         progress?.Report(new ApplicationStatus() { Status = "Sync is complete" });
                     } catch (RpcException e) {
                         if (e.StatusCode == StatusCode.Cancelled) {
                             Logger.Debug("The sync was cancelled - marking sync as complete");
-                            await client.SetSyncComplete(new CancellationToken());
+                            await client.SetSyncComplete(nameof(SynchronizedWait), new CancellationToken());
                         }
                     } catch (OperationCanceledException) {
                         Logger.Debug("The sync was cancelled - marking sync as complete");
-                        await client.SetSyncComplete(new CancellationToken());
+                        await client.SetSyncComplete(nameof(SynchronizedWait), new CancellationToken());
                     }
                 } else {
                     Logger.Debug("Waiting for leader to dither");
                     progress?.Report(new ApplicationStatus() { Status = "Waiting for leader to Sync" });
-                    await client.WaitForSyncComplete(token, waitTimeout);
+                    await client.WaitForSyncComplete(nameof(SynchronizedWait), token, waitTimeout);
                 }
 
 

@@ -7,15 +7,15 @@ using System.Threading.Tasks;
 
 namespace Synchronization.Service {
     public interface ISyncServiceClient {
-        void RegisterSync();
-        void UnregisterSync();
-        Task Register();
-        Task Unregister();
-        Task<bool> WaitForSyncStart(CancellationToken ct, TimeSpan timeout);
-        Task WaitForSyncComplete(CancellationToken ct, TimeSpan timeout);
-        Task SetSyncInProgress(CancellationToken ct);
-        Task SetSyncComplete(CancellationToken ct);
-        Task AnnounceToSync(bool canLead, CancellationToken ct);
+        void RegisterSync(string source);
+        void UnregisterSync(string source);
+        Task Register(string source);
+        Task Unregister(string source);
+        Task<bool> WaitForSyncStart(string source, CancellationToken ct, TimeSpan timeout);
+        Task WaitForSyncComplete(string source, CancellationToken ct, TimeSpan timeout);
+        Task SetSyncInProgress(string source, CancellationToken ct);
+        Task SetSyncComplete(string source, CancellationToken ct);
+        Task AnnounceToSync(string source, bool canLead, CancellationToken ct);
         Task<string> Ping(CancellationToken ct);
     }
 }
