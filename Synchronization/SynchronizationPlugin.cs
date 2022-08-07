@@ -106,7 +106,7 @@ namespace Synchronization {
                             await Task.Delay(1000, cts.Token);
                             var status = SyncServiceServer.Instance.GetStatus();
 
-                            bool showActivitySymbols = status == SyncServiceServer.IdleString || status.StartsWith("No instance could lead");
+                            bool showActivitySymbols = status != SyncServiceServer.IdleString && !status.StartsWith("No instance could lead");
 
                             statusMediator.StatusUpdate(new NINA.Core.Model.ApplicationStatus() { Status = $"{status} {(showActivitySymbols ? symbols[roller++ % 4] : string.Empty)}", Source = "Sync Service" });
                         } catch (OperationCanceledException) {

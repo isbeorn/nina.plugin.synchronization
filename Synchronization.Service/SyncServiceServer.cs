@@ -201,8 +201,8 @@ namespace Synchronization.Service {
         }
 
         public override async Task<Empty> AnnounceToSync(AnnounceToSyncRequest request, ServerCallContext context) {
+            Logger.Info($"Client {request.Clientid} is announcing to sync");
             if (IsRegistered(request.Clientid, request.Source)) {
-                Logger.Debug($"Client {request.Clientid} is announcing to sync");
                 AddClientWaitingForSync(request.Clientid, request.Canlead, request.Source);
             }
 
@@ -214,7 +214,7 @@ namespace Synchronization.Service {
         }
 
         public override async Task<LeaderReply> WaitForSyncStart(ClientIdRequest request, ServerCallContext context) {
-            Logger.Debug($"Client {request.Clientid} is waiting to sync");
+            Logger.Info($"Client {request.Clientid} is waiting to sync");
 
             while (syncInProgress[request.Source] && ClientsAreWaitingForSync(request.Source)) {
                 await Task.Delay(1000);
@@ -245,13 +245,14 @@ namespace Synchronization.Service {
         }
 
         public override async Task<Empty> SetSyncInProgress(ClientIdRequest request, ServerCallContext context) {
+            Logger.Info($"Client {request.Clientid} marking sync as in progress");
             SetStatus(request.Source, $"{request.Source} sync in progress");
             syncLeader[request.Source] = request.Clientid;
             return new Empty();
         }
 
         public override async Task<Empty> WaitForSyncCompleted(ClientIdRequest request, ServerCallContext context) {
-            Logger.Debug($"Client {request.Clientid} is announcing to want to sync ${request.Source}");
+            Logger.Info($"Client {request.Clientid} is waiting for sync completion {request.Source}");
 
             while (syncInProgress[request.Source] && SyncLeaderIsAlive(request.Source)) {
                 await Task.Delay(1000);
@@ -279,7 +280,7 @@ namespace Synchronization.Service {
         }
 
         public override async Task<Empty> SetSyncCompleted(ClientIdRequest request, ServerCallContext context) {
-            Logger.Debug($"Client {request.Clientid} is setting sync to be complete");
+            Logger.Info($"Client {request.Clientid} is marking sync to be complete");
             syncInProgress[request.Source] = false;
             syncLeader[request.Source] = string.Empty;
             ClearClientWaitingForSync(request.Source);

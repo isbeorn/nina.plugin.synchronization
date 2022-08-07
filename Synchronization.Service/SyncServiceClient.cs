@@ -18,6 +18,8 @@ namespace Synchronization.Service {
         public static SyncServiceClient Instance { get => lazy.Value; }
 
         private Guid id = Guid.NewGuid();
+        private static object lockObj = new object();
+        private bool heartbeatrunning = false;
 
         private SyncServiceClient() : base(new NamedPipeChannel(".", "NINA.Synchronization.Service.Sync", new NamedPipeChannelOptions() { ConnectionTimeout = 300000 })) {
         }
@@ -65,7 +67,7 @@ namespace Synchronization.Service {
         /// <returns></returns>
         public async Task<bool> WaitForSyncStart(string source, CancellationToken ct, TimeSpan timeout) {
             var result = await base.WaitForSyncStartAsync(new ClientIdRequest() { Clientid = id.ToString(), Source = source }, null, deadline: DateTime.UtcNow.AddSeconds(timeout.TotalSeconds), cancellationToken: ct);
-            if(string.IsNullOrEmpty(result.LeaderId)) { throw new Exception($"No instance could lead the synchronized {source}!"); }
+            if (string.IsNullOrEmpty(result.LeaderId)) { throw new Exception($"No instance could lead the synchronized {source}!"); }
             return result.LeaderId == id.ToString();
         }
 
@@ -98,31 +100,44 @@ namespace Synchronization.Service {
         }
 
         public async Task<string> Ping(CancellationToken ct) {
-            var resp =  await base.PingAsync(new ClientIdRequest() { Clientid = id.ToString() }, null, deadline: DateTime.UtcNow.AddSeconds(5), cancellationToken: ct);
+            var resp = await base.PingAsync(new ClientIdRequest() { Clientid = id.ToString() }, null, deadline: DateTime.UtcNow.AddSeconds(5), cancellationToken: ct);
             return resp.Reply;
         }
 
-        private  Task StartHeartbeat() {
-            return Task.Run(async () => {
-                using (heartbeatCts = new CancellationTokenSource()) {
-                    while (!heartbeatCts.IsCancellationRequested) {
-                        try {
-                            await Task.Delay(1000, heartbeatCts.Token);
-                            var resp = await SyncServiceClient.Instance.Ping(heartbeatCts.Token);
-                        } catch (OperationCanceledException) {
-                            Logger.Info("Stopping heartbeat");
-                        } catch (Exception ex) {
-                            Logger.Error("An error occurred while pinging the server", ex);
+        private Task StartHeartbeat() {
+            lock (lockObj) {
+                if (!heartbeatrunning) {
+                    heartbeatrunning = true;
+                    Logger.Info($"Starting heartbeat for {id}");
+                    return Task.Run(async () => {
+                        using (heartbeatCts = new CancellationTokenSource()) {
+                            var token = heartbeatCts.Token;
+                            while (!token.IsCancellationRequested) {
+                                try {
+                                    await Task.Delay(1000, token);
+                                    var resp = await SyncServiceClient.Instance.Ping(token);
+                                } catch (OperationCanceledException) {
+                                    Logger.Info($"Stopping heartbeat for {id}");
+                                } catch (Exception ex) {
+                                    Logger.Error("An error occurred while pinging the server", ex);
+                                }
+                            }
                         }
-                    }
+                    });
+                } else {
+                    heartbeatrunning = false;
+                    return Task.CompletedTask;
                 }
-            });
+            }
         }
 
         private void StopHeartbeat() {
             try {
                 heartbeatCts?.Cancel();
             } catch (Exception) { }
+            lock (lockObj) {
+                heartbeatrunning = false;
+            }
         }
     }
 }

@@ -1,5 +1,11 @@
 ﻿# Changelog
 
+## Version 0.2.5.0
+
+- Make sure that only one heartbeat task is running per instance
+- Improved loggin
+- Show the rectangle spinner on the server only when sync is in progress
+
 ## Version 0.2.4.0
 
 - Prevent types of sync instructions to interfer with each other. E.g. Sync Dither to not continue when another instance hits Sync Wait
