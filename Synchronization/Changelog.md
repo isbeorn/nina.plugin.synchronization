@@ -3,7 +3,7 @@
 ## Version 0.2.5.0
 
 - Make sure that only one heartbeat task is running per instance
-- Improved loggin
+- Improved logging
 - Show the rectangle spinner on the server only when sync is in progress
 
 ## Version 0.2.4.0
