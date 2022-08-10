@@ -105,39 +105,47 @@ namespace Synchronization.Service {
         }
 
         private Task StartHeartbeat() {
-            lock (lockObj) {
-                if (!heartbeatrunning) {
-                    heartbeatrunning = true;
-                    Logger.Info($"Starting heartbeat for {id}");
-                    return Task.Run(async () => {
-                        using (heartbeatCts = new CancellationTokenSource()) {
-                            var token = heartbeatCts.Token;
-                            while (!token.IsCancellationRequested) {
-                                try {
-                                    await Task.Delay(1000, token);
-                                    var resp = await SyncServiceClient.Instance.Ping(token);
-                                } catch (OperationCanceledException) {
-                                    Logger.Info($"Stopping heartbeat for {id}");
-                                } catch (Exception ex) {
-                                    Logger.Error("An error occurred while pinging the server", ex);
+            if(!heartbeatrunning) { 
+                lock (lockObj) {
+                    if (!heartbeatrunning) {
+                        heartbeatrunning = true;
+                        Logger.Info($"Starting heartbeat for {id}");
+                        return Task.Run(async () => {
+                            using (heartbeatCts = new CancellationTokenSource()) {
+                                var token = heartbeatCts.Token;
+                                while (!token.IsCancellationRequested) {
+                                    try {
+                                        await Task.Delay(1000, token);
+                                        var resp = await SyncServiceClient.Instance.Ping(token);
+                                    } catch (OperationCanceledException) {
+                                        Logger.Info($"Stopping heartbeat for {id}");
+                                    } catch (Exception ex) {
+                                        Logger.Error("An error occurred while pinging the server", ex);
+                                    }
                                 }
                             }
-                        }
-                    });
-                } else {
-                    heartbeatrunning = false;
-                    return Task.CompletedTask;
+                        });
+                    } else {
+                        heartbeatrunning = false;
+                        return Task.CompletedTask;
+                    }
                 }
+            } else {
+                return Task.CompletedTask;
             }
         }
 
-        private void StopHeartbeat() {
-            try {
-                heartbeatCts?.Cancel();
-            } catch (Exception) { }
-            lock (lockObj) {
-                heartbeatrunning = false;
-            }
+        private void StopHeartbeat() {            
+            if(heartbeatrunning) {
+                lock (lockObj) {
+                    if (heartbeatrunning) {
+                        try {
+                            heartbeatCts?.Cancel();
+                        } catch (Exception) { }
+                        heartbeatrunning = false;
+                    }
+                }
+            }            
         }
     }
 }
