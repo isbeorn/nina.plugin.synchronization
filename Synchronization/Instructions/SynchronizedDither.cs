@@ -56,6 +56,7 @@ namespace Synchronization.Instructions {
 
         public override object Clone() {
             return new SynchronizedDither(this) {
+                AfterExposures = AfterExposures,
                 TriggerRunner = (SequentialContainer)TriggerRunner.Clone()
             };
         }

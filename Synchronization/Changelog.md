@@ -1,5 +1,8 @@
 ﻿# Changelog
 
+## Version 0.2.6.0
+- Fix Synchronized Dither Exposure Count amount not being restored correctly on load
+
 ## Version 0.2.5.0
 
 - Make sure that only one heartbeat task is running per instance
