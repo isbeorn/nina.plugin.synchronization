@@ -2,6 +2,7 @@
 
 ## Version 0.2.6.0
 - Fix Synchronized Dither Exposure Count amount not being restored correctly on load
+- Improved synchronization robustness
 
 ## Version 0.2.5.0
 

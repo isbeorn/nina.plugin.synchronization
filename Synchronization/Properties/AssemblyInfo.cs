@@ -34,8 +34,8 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("0.2.5.1")]
-[assembly: AssemblyFileVersion("0.2.5.1")]
+[assembly: AssemblyVersion("0.2.6.0")]
+[assembly: AssemblyFileVersion("0.2.6.0")]
 
 //The minimum Version of N.I.N.A. that this plugin is compatible with
 [assembly: AssemblyMetadata("MinimumApplicationVersion", "2.0.0.9001")]

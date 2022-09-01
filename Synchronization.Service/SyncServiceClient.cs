@@ -104,7 +104,11 @@ namespace Synchronization.Service {
             return resp.Reply;
         }
 
-        private Task StartHeartbeat() {
+        public async Task WithdrawFromSync(string source, CancellationToken ct) {
+            await base.WithdrawFromSyncAsync(new ClientIdRequest() { Clientid = id.ToString(), Source = source }, null, deadline: DateTime.UtcNow.AddSeconds(5), cancellationToken: ct);
+        }
+
+    private Task StartHeartbeat() {
             if(!heartbeatrunning) { 
                 lock (lockObj) {
                     if (!heartbeatrunning) {

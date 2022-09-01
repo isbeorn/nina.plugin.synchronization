@@ -16,6 +16,7 @@ namespace Synchronization.Service {
         Task SetSyncInProgress(string source, CancellationToken ct);
         Task SetSyncComplete(string source, CancellationToken ct);
         Task AnnounceToSync(string source, bool canLead, CancellationToken ct);
+        Task WithdrawFromSync(string source, CancellationToken ct);
         Task<string> Ping(CancellationToken ct);
     }
 }

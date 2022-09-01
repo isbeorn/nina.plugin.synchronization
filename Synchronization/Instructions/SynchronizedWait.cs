@@ -71,6 +71,7 @@ namespace Synchronization.Instructions {
                 Logger.Debug("Waiting for synchronization");
                 progress?.Report(new ApplicationStatus() { Status = "Waiting for synchronization" });
 
+                await Task.Delay(200, token);
                 await client.AnnounceToSync(nameof(SynchronizedWait), true, token);
 
                 var isLeader = await client.WaitForSyncStart(nameof(SynchronizedWait), token, waitTimeout);
@@ -93,18 +94,21 @@ namespace Synchronization.Instructions {
                         await client.SetSyncComplete(nameof(SynchronizedWait), new CancellationToken());
                     }
                 } else {
-                    Logger.Debug("Waiting for leader to dither");
-                    progress?.Report(new ApplicationStatus() { Status = "Waiting for leader to Sync" });
+                    Logger.Debug("Waiting for leader to sync");
+                    progress?.Report(new ApplicationStatus() { Status = "Waiting for leader to sync" });
                     await client.WaitForSyncComplete(nameof(SynchronizedWait), token, waitTimeout);
                 }
 
 
             } catch (RpcException e) {
                 if (e.StatusCode == StatusCode.Cancelled) {
+                    await client.WithdrawFromSync(nameof(SynchronizedWait), new CancellationToken());
                     throw new OperationCanceledException();
                 } else {
                     throw;
                 }
+            } catch (OperationCanceledException) {
+                await client.WithdrawFromSync(nameof(SynchronizedWait), new CancellationToken());
             } finally {
                 progress?.Report(new ApplicationStatus() { Status = "" });
             }

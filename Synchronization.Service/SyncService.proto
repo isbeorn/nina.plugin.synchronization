@@ -11,6 +11,7 @@ service SyncService {
 	rpc Register (ClientIdRequest) returns (google.protobuf.Empty);
 	rpc Unregister (ClientIdRequest) returns (google.protobuf.Empty);
 	rpc AnnounceToSync (AnnounceToSyncRequest) returns (google.protobuf.Empty);
+	rpc WithdrawFromSync (ClientIdRequest) returns (google.protobuf.Empty);
 	rpc WaitForSyncStart (ClientIdRequest) returns (LeaderReply);
 	rpc WaitForSyncCompleted (ClientIdRequest) returns (google.protobuf.Empty);
 	rpc SetSyncInProgress (ClientIdRequest) returns (google.protobuf.Empty);

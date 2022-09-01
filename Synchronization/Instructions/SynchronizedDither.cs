@@ -148,7 +148,7 @@ namespace Synchronization.Instructions {
                                 }
                             } catch (OperationCanceledException) {
                                 Logger.Debug("The dither was cancelled - marking dither as complete");
-                                await client.SetSyncComplete(nameof(SynchronizedDither), new CancellationToken());
+                                await client.SetSyncComplete(nameof(SynchronizedDither), new CancellationToken());                                
                             }
 
                             progress?.Report(new ApplicationStatus() { Status = "Dither is complete" });
@@ -167,6 +167,8 @@ namespace Synchronization.Instructions {
                 } else {
                     return;
                 }
+            } catch (OperationCanceledException) {
+                await client.WithdrawFromSync(nameof(SynchronizedDither), new CancellationToken());
             } finally {
                 progress?.Report(new ApplicationStatus() { Status = "" });
             }
