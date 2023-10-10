@@ -72,7 +72,7 @@ namespace Synchronization.Instructions {
         }
 
         public override string ToString() {
-            return $"Trigger: {nameof(SynchronizedDither)}";
+            return $"Trigger: {nameof(SynchronizedDither)}, AfterExposures: {AfterExposures}";
         }
 
         public bool Validate() {
@@ -107,11 +107,19 @@ namespace Synchronization.Instructions {
         }
 
         public override void SequenceBlockInitialize() {
-            client.RegisterSync(nameof(SynchronizedDither));
+            try {
+                client.RegisterSync(nameof(SynchronizedDither));
+            } catch (Exception ex) {
+                Logger.Error(ex);
+            }
         }
 
         public override void SequenceBlockTeardown() {
-            client.UnregisterSync(nameof(SynchronizedDither));
+            try {
+                client.UnregisterSync(nameof(SynchronizedDither));
+            } catch (Exception ex) {
+                Logger.Error(ex);
+            }
         }
 
         private PluginOptionsAccessor pluginSettings;

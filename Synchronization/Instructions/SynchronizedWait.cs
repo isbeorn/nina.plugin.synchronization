@@ -53,11 +53,19 @@ namespace Synchronization.Instructions {
         }
 
         public override void Initialize() {
-            client.RegisterSync(nameof(SynchronizedWait));
+            try {
+                client.RegisterSync(nameof(SynchronizedWait));
+            } catch (Exception ex) {
+                Logger.Error(ex);
+            }
         }
 
         public override void Teardown() {
-            client.UnregisterSync(nameof(SynchronizedWait));
+            try {
+                client.UnregisterSync(nameof(SynchronizedWait));
+            } catch (Exception ex) {
+                Logger.Error(ex);
+            }
         }
 
         private ISyncServiceClient client {
