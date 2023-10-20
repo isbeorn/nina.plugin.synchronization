@@ -95,10 +95,11 @@ namespace Synchronization.Instructions {
         }
 
         public override void AfterParentChanged() {
-            if (ItemUtility.IsInRootContainer(Parent) && this.Parent.Status == NINA.Core.Enum.SequenceEntityStatus.RUNNING) {
-                SequenceBlockInitialize();
+            var root = ItemUtility.GetRootContainer(this.Parent);
+            if (root?.Status == NINA.Core.Enum.SequenceEntityStatus.RUNNING) {
+                Initialize();
             } else {
-                SequenceBlockTeardown();
+                Teardown();
             }
         }
 
@@ -106,7 +107,7 @@ namespace Synchronization.Instructions {
             get => SyncServiceClient.Instance;
         }
 
-        public override void SequenceBlockInitialize() {
+        public override void Initialize() {
             try {
                 client.RegisterSync(nameof(SynchronizedDither));
             } catch (Exception ex) {
@@ -114,7 +115,7 @@ namespace Synchronization.Instructions {
             }
         }
 
-        public override void SequenceBlockTeardown() {
+        public override void Teardown() {
             try {
                 client.UnregisterSync(nameof(SynchronizedDither));
             } catch (Exception ex) {
