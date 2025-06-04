@@ -1,5 +1,13 @@
 ﻿# Changelog
 
+## Version 1.0.1.0
+- Sync Dither will now register when starting the sequence, instead of when starting the instruction set it is inside
+- Sync Dither after exposures will no longer skip execution when clearing the image history
+- Synchronization registration now counts registrations and a client source is only fully unregistered when all instructions have done so
+
+## Version 1.0.0.0
+- Upgrade to .NET7
+
 ## Version 0.2.6.0
 - Fix Synchronized Dither Exposure Count amount not being restored correctly on load
 - Improved synchronization robustness

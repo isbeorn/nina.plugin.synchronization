@@ -48,7 +48,7 @@ namespace Synchronization {
 
             // Ensure that only one server will be spawned when multiple application instances are started
             // Ref: https://docs.microsoft.com/en-us/dotnet/api/system.threading.mutex?redirectedfrom=MSDN&view=net-5.0
-            using (var mutex = new Mutex(false, mutexid, out var createNew, securitySettings)) {
+            using (var mutex = new Mutex(false, mutexid, out var createNew)) {
                 var hasHandle = false;
                 try {
                     try {

@@ -9,6 +9,19 @@ using System.Linq;
 using System.Threading.Tasks;
 
 namespace Synchronization.Service {
+    class ClientSource {
+        public ClientSource(string id) {
+            Id = id;
+            DateTime = DateTime.UtcNow;
+            Registrations = 1;
+        }
+
+        public string Id { get; }
+        public DateTime DateTime { get; set; }
+        public int Registrations { get; set; }
+
+    }
+
     /// <summary>
     /// Protocol:
     /// ClientA, ClientB, ClientC
@@ -38,7 +51,7 @@ namespace Synchronization.Service {
         private Dictionary<string, string> statusBySource = new Dictionary<string, string>();
 
 
-        private Dictionary<string, SortedDictionary<string, DateTime>> registeredClients { get; }
+        private Dictionary<string, SortedDictionary<string, ClientSource>> registeredClients { get; }
         private Dictionary<string, SortedDictionary<string, bool>> clientsWaitingForSync { get; }
         private ConcurrentDictionary<string, bool> syncInProgress;
         private ConcurrentDictionary<string, string> syncLeader;
@@ -70,7 +83,7 @@ namespace Synchronization.Service {
         }
 
         private SyncServiceServer() {
-            registeredClients = new Dictionary<string, SortedDictionary<string, DateTime>>();
+            registeredClients = new Dictionary<string, SortedDictionary<string, ClientSource>>();
             clientsWaitingForSync = new Dictionary<string, SortedDictionary<string, bool>>();
             statusBySource = new Dictionary<string, string>();
             syncInProgress = new ConcurrentDictionary<string, bool>();
@@ -79,37 +92,37 @@ namespace Synchronization.Service {
 
         private object lockobj = new object();
 
-        private bool IsRegistered(string id, string source) {
-            lock (lockobj) {
-                if (!registeredClients.ContainsKey(source)) {
-                    registeredClients[source] = new SortedDictionary<string, DateTime>();
-                }
-                if (registeredClients[source].ContainsKey(id)) {
-                    return true;
-                }
-                return false;
-            }
-        }
 
         private void AddClient(string id, string source) {
             lock (lockobj) {
                 if (!registeredClients.ContainsKey(source)) {
-                    registeredClients[source] = new SortedDictionary<string, DateTime>();
+                    registeredClients[source] = new SortedDictionary<string, ClientSource>();
                 }
                 if (registeredClients[source].ContainsKey(id)) {
-                    registeredClients[source][id] = DateTime.UtcNow;
+                    registeredClients[source][id].Registrations += 1; 
+                    Logger.Info($"Client {id} registered for sync with {source} {registeredClients[source][id].Registrations}x");
                 } else {
-                    registeredClients[source].Add(id, DateTime.UtcNow);
+                    registeredClients[source].Add(id, new ClientSource(id));
+                    Logger.Info($"Client {id} registered for sync with {source}");
                 }
             }
         }
 
         private void RemoveClient(string id, string source) {
             lock (lockobj) {
-                if (!registeredClients.ContainsKey(source)) {
-                    registeredClients[source] = new SortedDictionary<string, DateTime>();
+                if (!registeredClients.ContainsKey(source)) {                    
+                    registeredClients[source] = new SortedDictionary<string, ClientSource>();
                 }
-                registeredClients[source].Remove(id);
+                if (registeredClients[source].ContainsKey(id)) {
+                    var client = registeredClients[source][id];
+                    client.Registrations -= 1;
+                    if(client.Registrations == 0) {
+                        registeredClients[source].Remove(id);
+                        Logger.Info($"Client {id} unregistered sync with {source}");
+                    } else {
+                        Logger.Info($"Client {id} unregistered once sync with {source} but is still registered {client.Registrations}x");
+                    }
+                }
             }
         }
 
@@ -117,7 +130,7 @@ namespace Synchronization.Service {
             lock (lockobj) {
                 foreach (var clientsBySource in registeredClients.Values) {
                     if (clientsBySource.ContainsKey(id)) {
-                        clientsBySource[id] = DateTime.UtcNow;
+                        clientsBySource[id].DateTime = DateTime.UtcNow;
                     }
                 }
 
@@ -127,23 +140,23 @@ namespace Synchronization.Service {
         private string ElectSyncLeader(string source) {
             lock (lockobj) {
                 if (!registeredClients.ContainsKey(source)) {
-                    registeredClients[source] = new SortedDictionary<string, DateTime>();
+                    registeredClients[source] = new SortedDictionary<string, ClientSource>();
                 }
                 if (!clientsWaitingForSync.ContainsKey(source)) {
                     clientsWaitingForSync[source] = new SortedDictionary<string, bool>();
                 }
-                return clientsWaitingForSync[source].Where(x => x.Value == true && registeredClients[source].Where(r => r.Key == x.Key && r.Value > DateTime.UtcNow.AddSeconds(-30)).Select(y => y.Key) != null).Select(kvp => kvp.Key).FirstOrDefault();
+                return clientsWaitingForSync[source].Where(x => x.Value == true && registeredClients[source].Where(r => r.Key == x.Key && r.Value.DateTime > DateTime.UtcNow.AddSeconds(-30)).Select(y => y.Key) != null).Select(kvp => kvp.Key).FirstOrDefault();
             }
         }
 
         private void AddClientWaitingForSync(string id, bool canLead, string source) {
             lock (lockobj) {
                 if (!registeredClients.ContainsKey(source)) {
-                    registeredClients[source] = new SortedDictionary<string, DateTime>();
+                    registeredClients[source] = new SortedDictionary<string, ClientSource>();
                 }
                 if (!registeredClients[source].ContainsKey(id)) {
                     // In case a client missed to register or the server restarted in between add the client to the registered clients again
-                    registeredClients[source].Add(id, DateTime.UtcNow);
+                    registeredClients[source].Add(id, new ClientSource(id));
                 }
 
                 if (!clientsWaitingForSync.ContainsKey(source)) {
@@ -178,25 +191,20 @@ namespace Synchronization.Service {
         private int NumberOfTotalClients(string source) {
             lock (lockobj) {
                 if (!registeredClients.ContainsKey(source)) {
-                    registeredClients[source] = new SortedDictionary<string, DateTime>();
+                    registeredClients[source] = new SortedDictionary<string, ClientSource>();
                 }
-                return registeredClients[source].Where(x => x.Value > DateTime.UtcNow.AddSeconds(-30)).Select(x => x.Key).Count();
+                return registeredClients[source].Where(x => x.Value.DateTime > DateTime.UtcNow.AddSeconds(-30)).Select(x => x.Key).Count();
             }
         }
 
         public override async Task<Empty> Register(ClientIdRequest request, ServerCallContext context) {
-            if (!IsRegistered(request.Clientid, request.Source)) {
-                Logger.Info($"Client {request.Clientid} registered for sync");
-                AddClient(request.Clientid, request.Source);
-            }
+            
+            AddClient(request.Clientid, request.Source);
             return new Empty();
         }
 
         public override async Task<Empty> Unregister(ClientIdRequest request, ServerCallContext context) {
-            if (IsRegistered(request.Clientid, request.Source)) {
-                Logger.Info($"Client {request.Clientid} unregistered sync");
-                RemoveClient(request.Clientid, request.Source);
-            }
+            RemoveClient(request.Clientid, request.Source);
             return new Empty();
         }
 
@@ -243,9 +251,9 @@ namespace Synchronization.Service {
         private bool ClientsAreWaitingForSync(string source) {
             lock (lockobj) {
                 if (!registeredClients.ContainsKey(source)) {
-                    registeredClients[source] = new SortedDictionary<string, DateTime>();
+                    registeredClients[source] = new SortedDictionary<string, ClientSource>();
                 }
-                var reg = registeredClients[source].Where(x => x.Value > DateTime.UtcNow.AddSeconds(-30)).Select(x => x.Key).ToList();
+                var reg = registeredClients[source].Where(x => x.Value.DateTime > DateTime.UtcNow.AddSeconds(-30)).Select(x => x.Key).ToList();
                 return (reg.Intersect(clientsWaitingForSync[source].Keys).Count() < reg.Count);
             }
         }
@@ -274,9 +282,9 @@ namespace Synchronization.Service {
         public bool SyncLeaderIsAlive(string source) {
             lock (lockobj) {
                 if (!registeredClients.ContainsKey(source)) {
-                    registeredClients[source] = new SortedDictionary<string, DateTime>();
+                    registeredClients[source] = new SortedDictionary<string, ClientSource>();
                 }
-                if (registeredClients[source].ContainsKey(syncLeader[source]) && registeredClients[source][syncLeader[source]] > DateTime.UtcNow.AddSeconds(-30)) {
+                if (registeredClients[source].ContainsKey(syncLeader[source]) && registeredClients[source][syncLeader[source]].DateTime > DateTime.UtcNow.AddSeconds(-30)) {
                     return true;
                 } else {
                     // If the syncLeader is empty it was already cleaned

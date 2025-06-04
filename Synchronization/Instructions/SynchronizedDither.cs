@@ -72,7 +72,7 @@ namespace Synchronization.Instructions {
         }
 
         public override string ToString() {
-            return $"Trigger: {nameof(SynchronizedDither)}";
+            return $"Trigger: {nameof(SynchronizedDither)}, AfterExposures: {AfterExposures}";
         }
 
         public bool Validate() {
@@ -95,10 +95,11 @@ namespace Synchronization.Instructions {
         }
 
         public override void AfterParentChanged() {
-            if (ItemUtility.IsInRootContainer(Parent) && this.Parent.Status == NINA.Core.Enum.SequenceEntityStatus.RUNNING) {
-                SequenceBlockInitialize();
+            var root = ItemUtility.GetRootContainer(this.Parent);
+            if (root?.Status == NINA.Core.Enum.SequenceEntityStatus.RUNNING) {
+                Initialize();
             } else {
-                SequenceBlockTeardown();
+                Teardown();
             }
         }
 
@@ -106,12 +107,20 @@ namespace Synchronization.Instructions {
             get => SyncServiceClient.Instance;
         }
 
-        public override void SequenceBlockInitialize() {
-            client.RegisterSync(nameof(SynchronizedDither));
+        public override void Initialize() {
+            try {
+                client.RegisterSync(nameof(SynchronizedDither));
+            } catch (Exception ex) {
+                Logger.Error(ex);
+            }
         }
 
-        public override void SequenceBlockTeardown() {
-            client.UnregisterSync(nameof(SynchronizedDither));
+        public override void Teardown() {
+            try {
+                client.UnregisterSync(nameof(SynchronizedDither));
+            } catch (Exception ex) {
+                Logger.Error(ex);
+            }
         }
 
         private PluginOptionsAccessor pluginSettings;
@@ -126,39 +135,41 @@ namespace Synchronization.Instructions {
                     try {
                         var waitTimeout = TimeSpan.FromSeconds(pluginSettings.GetValueInt32(nameof(SynchronizationPlugin.DitherWaitTimeout), 300));
                         lastTriggerId = history.ImageHistory.Count;
-                        Logger.Debug("Waiting for synchronization");
+                        Logger.Info("Waiting for synchronization");
                         progress?.Report(new ApplicationStatus() { Status = "Waiting for synchronization" });
                         var info = guiderMediator.GetInfo();
                         await client.AnnounceToSync(nameof(SynchronizedDither), info.Connected, token);
                         var isLeader = await client.WaitForSyncStart(nameof(SynchronizedDither), token, waitTimeout);
 
+                        Logger.Info("All Synchronized");
                         progress?.Report(new ApplicationStatus() { Status = "All Synchronized" });
                         if (isLeader) {
                             try {
-                                Logger.Debug("This instance leads the dither");
+                                Logger.Info("This instance leads the dither");
                                 await client.SetSyncInProgress(nameof(SynchronizedDither), token);
                                 progress?.Report(new ApplicationStatus() { Status = "This instance leads the dither" });
                                 await TriggerRunner.Run(progress, token);
-                                Logger.Debug("Marking dither as complete");
+                                Logger.Info("Marking dither as complete");
                                 await client.SetSyncComplete(nameof(SynchronizedDither), token);
                             } catch (RpcException e) {
                                 if (e.StatusCode == StatusCode.Cancelled) {
-                                    Logger.Debug("The dither was cancelled - marking dither as complete");
+                                    Logger.Info("The dither was cancelled - marking dither as complete");
                                     await client.SetSyncComplete(nameof(SynchronizedDither), new CancellationToken());
                                 }
                             } catch (OperationCanceledException) {
-                                Logger.Debug("The dither was cancelled - marking dither as complete");
+                                Logger.Info("The dither was cancelled - marking dither as complete");
                                 await client.SetSyncComplete(nameof(SynchronizedDither), new CancellationToken());                                
                             }
 
                             progress?.Report(new ApplicationStatus() { Status = "Dither is complete" });
                         } else {
-                            Logger.Debug("Waiting for leader to dither");
+                            Logger.Info("Waiting for leader to dither");
                             progress?.Report(new ApplicationStatus() { Status = "Waiting for leader to dither" });
                             await client.WaitForSyncComplete(nameof(SynchronizedDither), token, waitTimeout);
                         }
                     } catch (RpcException e) {
                         if (e.StatusCode == StatusCode.Cancelled) {
+                            Logger.Info("The dither was cancelled - marking dither as complete");
                             throw new OperationCanceledException();
                         } else {
                             throw;
@@ -168,6 +179,7 @@ namespace Synchronization.Instructions {
                     return;
                 }
             } catch (OperationCanceledException) {
+                Logger.Info("The dither was cancelled - marking dither as complete");
                 await client.WithdrawFromSync(nameof(SynchronizedDither), new CancellationToken());
             } finally {
                 progress?.Report(new ApplicationStatus() { Status = "" });
@@ -176,8 +188,11 @@ namespace Synchronization.Instructions {
 
         public override bool ShouldTrigger(ISequenceItem previousItem, ISequenceItem nextItem) {
             if (previousItem == null && nextItem == null) { return false; }
-
             RaisePropertyChanged(nameof(ProgressExposures));
+            if (lastTriggerId > history.ImageHistory.Count) {
+                // The image history was most likely cleared
+                lastTriggerId = 0;
+            }
             var shouldTrigger = lastTriggerId < history.ImageHistory.Count && history.ImageHistory.Count > 0 && ProgressExposures == 0;
 
             if (shouldTrigger) {

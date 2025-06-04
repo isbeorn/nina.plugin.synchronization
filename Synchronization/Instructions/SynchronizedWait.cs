@@ -53,11 +53,19 @@ namespace Synchronization.Instructions {
         }
 
         public override void Initialize() {
-            client.RegisterSync(nameof(SynchronizedWait));
+            try {
+                client.RegisterSync(nameof(SynchronizedWait));
+            } catch (Exception ex) {
+                Logger.Error(ex);
+            }
         }
 
         public override void Teardown() {
-            client.UnregisterSync(nameof(SynchronizedWait));
+            try {
+                client.UnregisterSync(nameof(SynchronizedWait));
+            } catch (Exception ex) {
+                Logger.Error(ex);
+            }
         }
 
         private ISyncServiceClient client {
@@ -68,7 +76,7 @@ namespace Synchronization.Instructions {
             try {
                 var waitTimeout = TimeSpan.FromSeconds(pluginSettings.GetValueInt32(nameof(SynchronizationPlugin.DitherWaitTimeout), 300));
 
-                Logger.Debug("Waiting for synchronization");
+                Logger.Info("Waiting for synchronization");
                 progress?.Report(new ApplicationStatus() { Status = "Waiting for synchronization" });
 
                 await Task.Delay(200, token);
@@ -76,25 +84,28 @@ namespace Synchronization.Instructions {
 
                 var isLeader = await client.WaitForSyncStart(nameof(SynchronizedWait), token, waitTimeout);
 
+                Logger.Info("All Synchronized");
                 progress?.Report(new ApplicationStatus() { Status = "All Synchronized" });
 
                 if (isLeader) {
                     try {
+                        Logger.Info("This instance leads the sync");
                         await client.SetSyncInProgress(nameof(SynchronizedWait), token);
                         await client.SetSyncComplete(nameof(SynchronizedWait), token);
 
+                        Logger.Info("Marking sync as complete");
                         progress?.Report(new ApplicationStatus() { Status = "Sync is complete" });
                     } catch (RpcException e) {
                         if (e.StatusCode == StatusCode.Cancelled) {
-                            Logger.Debug("The sync was cancelled - marking sync as complete");
+                            Logger.Info("The sync was cancelled - marking sync as complete");
                             await client.SetSyncComplete(nameof(SynchronizedWait), new CancellationToken());
                         }
                     } catch (OperationCanceledException) {
-                        Logger.Debug("The sync was cancelled - marking sync as complete");
+                        Logger.Info("The sync was cancelled - marking sync as complete");
                         await client.SetSyncComplete(nameof(SynchronizedWait), new CancellationToken());
                     }
                 } else {
-                    Logger.Debug("Waiting for leader to sync");
+                    Logger.Info("Waiting for leader to sync");
                     progress?.Report(new ApplicationStatus() { Status = "Waiting for leader to sync" });
                     await client.WaitForSyncComplete(nameof(SynchronizedWait), token, waitTimeout);
                 }
@@ -102,12 +113,14 @@ namespace Synchronization.Instructions {
 
             } catch (RpcException e) {
                 if (e.StatusCode == StatusCode.Cancelled) {
+                    Logger.Info("The sync was cancelled - marking sync as complete");
                     await client.WithdrawFromSync(nameof(SynchronizedWait), new CancellationToken());
                     throw new OperationCanceledException();
                 } else {
                     throw;
                 }
             } catch (OperationCanceledException) {
+                Logger.Info("The sync was cancelled - marking sync as complete");
                 await client.WithdrawFromSync(nameof(SynchronizedWait), new CancellationToken());
             } finally {
                 progress?.Report(new ApplicationStatus() { Status = "" });
