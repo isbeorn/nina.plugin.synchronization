@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("Synchronization")]
 [assembly: AssemblyDescription("A plugin that introduces synchronization instructions for multi camera imaging rigs")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Stefan Berg")]
+[assembly: AssemblyCompany("Stefan Berg @isbeorn")]
 [assembly: AssemblyProduct("NINA.Plugins")]
-[assembly: AssemblyCopyright("Copyright ©  2021-2022")]
+[assembly: AssemblyCopyright("Copyright ©  2021-2025")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -34,8 +34,8 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.0.1.0")]
-[assembly: AssemblyFileVersion("1.0.1.0")]
+[assembly: AssemblyVersion("1.0.1.1")]
+[assembly: AssemblyFileVersion("1.0.1.1")]
 
 //The minimum Version of N.I.N.A. that this plugin is compatible with
 [assembly: AssemblyMetadata("MinimumApplicationVersion", "3.0.0.1056")]
@@ -47,17 +47,17 @@ using System.Runtime.InteropServices;
 //The url to the license
 [assembly: AssemblyMetadata("LicenseURL", "https://www.mozilla.org/en-US/MPL/2.0/")]
 //The repository where your pluggin is hosted
-[assembly: AssemblyMetadata("Repository", "https://bitbucket.org/Isbeorn/nina.plugin.synchronization/")]
+[assembly: AssemblyMetadata("Repository", "https://github.com/isbeorn/nina.plugin.synchronization")]
 
-[assembly: AssemblyMetadata("ChangelogURL", "https://bitbucket.org/Isbeorn/nina.plugin.synchronization/src/master/Synchronization/Changelog.md")]
+[assembly: AssemblyMetadata("ChangelogURL", "https://github.com/isbeorn/nina.plugin.synchronization/blob/master/Synchronization/Changelog.md")]
 
 //Common tags that quickly describe your plugin
 [assembly: AssemblyMetadata("Tags", "Dither,Synchronization,Multiple Cameras")]
 
 //The featured logo that will be displayed in the plugin list next to the name
-[assembly: AssemblyMetadata("FeaturedImageURL", "https://bitbucket.org/Isbeorn/nina.plugin.synchronization/downloads/SynchronizationLogo.jpg")]
+[assembly: AssemblyMetadata("FeaturedImageURL", "https://github.com/isbeorn/nina.plugin.synchronization/blob/master/Synchronization/SynchronizationLogo.jpg?raw=true")]
 //An example screenshot of your plugin in action
-[assembly: AssemblyMetadata("ScreenshotURL", "https://bitbucket.org/Isbeorn/nina.plugin.synchronization/downloads/SynchronizationSample.jpg")]
+[assembly: AssemblyMetadata("ScreenshotURL", "https://github.com/isbeorn/nina.plugin.synchronization/blob/master/Synchronization/SynchronizationSample.jpg?raw=true")]
 //An additional example screenshot of your plugin in action
 [assembly: AssemblyMetadata("AltScreenshotURL", "")]
 [assembly: AssemblyMetadata("LongDescription", @"This plugin is intended for people that want to dither on a setup with multiple cameras on one single mount. 
