@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## Version 1.1.0.0
+- Updated the plugin to N.I.N.A. 3.3 nightly and .NET 10
+- Updated the gRPC and protobuf runtime dependencies to match N.I.N.A. 3.3
+
 ## Version 1.0.3.0
 - Fixed a race where a fast leader could complete a synchronized wait before another instance observed the sync start, leaving that instance blocked until the leader sequence stopped
 

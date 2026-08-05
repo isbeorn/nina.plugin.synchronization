@@ -50,14 +50,14 @@ jobs:
       # Add all necessary files that the plugin needs to the packages folder - basically all items that are normally in your post build event on your local builds
       - name: Prepare package
         run: |
-          Copy-Item "Synchronization/bin/Release/net8.0-windows/${{ env.PLUGIN_DLL_NAME }}.dll" "packages/${{ env.PLUGIN_NAME }}/${{ env.PLUGIN_DLL_NAME }}.dll" -Force
-          Copy-Item "Synchronization/bin/Release/net8.0-windows/${{ env.PLUGIN_DLL_NAME }}.pdb" "packages/${{ env.PLUGIN_NAME }}/${{ env.PLUGIN_DLL_NAME }}.pdb" -Force
+          Copy-Item "Synchronization/bin/Release/net10.0-windows/${{ env.PLUGIN_DLL_NAME }}.dll" "packages/${{ env.PLUGIN_NAME }}/${{ env.PLUGIN_DLL_NAME }}.dll" -Force
+          Copy-Item "Synchronization/bin/Release/net10.0-windows/${{ env.PLUGIN_DLL_NAME }}.pdb" "packages/${{ env.PLUGIN_NAME }}/${{ env.PLUGIN_DLL_NAME }}.pdb" -Force
           
-          Copy-Item "Synchronization/bin/Release/net8.0-windows/NINA.Plugins.Synchronization.Service.dll" "packages/${{ env.PLUGIN_NAME }}/NINA.Plugins.Synchronization.Service.dll" -Force
-          Copy-Item "Synchronization/bin/Release/net8.0-windows/NINA.Plugins.Synchronization.Service.pdb" "packages/${{ env.PLUGIN_NAME }}/NINA.Plugins.Synchronization.Service.pdb" -Force
-          Copy-Item "Synchronization/bin/Release/net8.0-windows/Google.Protobuf.dll" "packages/${{ env.PLUGIN_NAME }}/Google.Protobuf.dll" -Force
-          Copy-Item "Synchronization/bin/Release/net8.0-windows/Grpc.Core.Api.dll" "packages/${{ env.PLUGIN_NAME }}/Grpc.Core.Api.dll" -Force
-          Copy-Item "Synchronization/bin/Release/net8.0-windows/GrpcDotNetNamedPipes.dll" "packages/${{ env.PLUGIN_NAME }}/GrpcDotNetNamedPipes.dll" -Force
+          Copy-Item "Synchronization/bin/Release/net10.0-windows/NINA.Plugins.Synchronization.Service.dll" "packages/${{ env.PLUGIN_NAME }}/NINA.Plugins.Synchronization.Service.dll" -Force
+          Copy-Item "Synchronization/bin/Release/net10.0-windows/NINA.Plugins.Synchronization.Service.pdb" "packages/${{ env.PLUGIN_NAME }}/NINA.Plugins.Synchronization.Service.pdb" -Force
+          Copy-Item "Synchronization/bin/Release/net10.0-windows/Google.Protobuf.dll" "packages/${{ env.PLUGIN_NAME }}/Google.Protobuf.dll" -Force
+          Copy-Item "Synchronization/bin/Release/net10.0-windows/Grpc.Core.Api.dll" "packages/${{ env.PLUGIN_NAME }}/Grpc.Core.Api.dll" -Force
+          Copy-Item "Synchronization/bin/Release/net10.0-windows/GrpcDotNetNamedPipes.dll" "packages/${{ env.PLUGIN_NAME }}/GrpcDotNetNamedPipes.dll" -Force
       - name: Create Plugin archives and manifests
         run: |
           curl https://api.bitbucket.org/2.0/repositories/isbeorn/nina.plugin.manifests/src/main/tools/CreateNET7Manifest.ps1 >> CreateNET7Manifest.ps1

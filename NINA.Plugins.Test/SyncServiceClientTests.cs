@@ -1,15 +1,25 @@
+using Google.Protobuf;
+using Grpc.Core;
 using GrpcDotNetNamedPipes;
 using NINA.Synchronization.Service.Sync;
 using NUnit.Framework;
 using Synchronization.Service;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 
 namespace NINA.Plugins.Test {
     [TestFixture]
     [NonParallelizable]
     public class SyncServiceClientTests {
+        [Test]
+        public void RuntimeDependencies_MatchNina3_3NightlyVersions() {
+            AssertProductVersion(typeof(NamedPipeServer).Assembly, "3.1.0");
+            AssertProductVersion(typeof(CallOptions).Assembly, "2.80.0");
+            AssertProductVersion(typeof(IMessage).Assembly, "3.35.1");
+        }
+
         [Test]
         public void StartHeartbeat_WhenNoRegistrationsExist_DoesNotRunHeartbeat() {
             var client = SyncServiceClient.Instance;
@@ -77,6 +87,12 @@ namespace NINA.Plugins.Test {
         private static void InvokeStopHeartbeat(SyncServiceClient client) {
             var method = typeof(SyncServiceClient).GetMethod("StopHeartbeat", BindingFlags.Instance | BindingFlags.NonPublic);
             method.Invoke(client, Array.Empty<object>());
+        }
+
+        private static void AssertProductVersion(Assembly assembly, string expectedVersion) {
+            var productVersion = FileVersionInfo.GetVersionInfo(assembly.Location).ProductVersion;
+
+            Assert.That(productVersion, Does.StartWith(expectedVersion), $"Unexpected product version for {assembly.GetName().Name}.");
         }
     }
 }

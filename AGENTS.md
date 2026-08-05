@@ -27,7 +27,7 @@ Only one instance hosts the synchronization server. The first N.I.N.A. process t
   - `SyncServiceServer.cs`: in-process coordination server used by the first plugin instance.
   - `SyncServiceClient.cs`: singleton client used by all plugin instructions/triggers.
   - `ISyncServiceClient.cs`: client abstraction used by instruction code.
-- `bitbucket-pipelines.yml`: legacy publishing pipeline. It still references .NET 7 SDK/output paths while the project files target `net8.0-windows`; update it before relying on CI packaging.
+- `.github/workflows/github-action.yaml`: release pipeline that builds the .NET 10 solution and packages the plugin, service and gRPC runtime dependencies.
 
 ## Runtime Architecture
 
@@ -63,16 +63,16 @@ For `SynchronizedDither`, `canLead` is true only when `IGuiderMediator.GetInfo()
 
 ## Build And Development
 
-The projects target `net8.0-windows` and use WPF:
+The projects target `net10.0-windows` and use WPF:
 
 ```powershell
 dotnet restore .\Synchronization.sln
 dotnet build .\Synchronization.sln -c Debug
 ```
 
-The plugin depends on `NINA.Plugin` version `3.0.0.1056-nightly` and `Grpc.Tools` version `2.58.0`.
+The plugin depends on `NINA.Plugin` version `3.3.0.1053-nightly`. The service project uses `Grpc.Tools` version `2.83.0` to generate the gRPC contract code.
 
-There are no test projects in this repository. For behavioral changes, use a build as a minimum check and plan manual verification in multiple N.I.N.A. instances. The important manual scenarios are:
+The `NINA.Plugins.Test` project covers service coordination, named-pipe client behavior and deployment targets. Run it together with a solution build, then plan manual verification in multiple N.I.N.A. instances for behavioral or runtime dependency changes. The important manual scenarios are:
 
 - two or more instances reach `Synchronized Wait` and all continue only after everyone arrives;
 - only one guider-connected instance leads `Synchronized Dither`;

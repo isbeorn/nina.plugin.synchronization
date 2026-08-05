@@ -19,6 +19,17 @@ namespace NINA.Plugins.Test {
         }
 
         [Test]
+        public void GitHubActionBuild_UsesNet10OutputPaths() {
+            var repoRoot = FindRepoRoot();
+            var workflowPath = Path.Combine(repoRoot, ".github", "workflows", "github-action.yaml");
+
+            var workflow = File.ReadAllText(workflowPath);
+
+            Assert.That(workflow, Does.Contain("net10.0-windows"));
+            Assert.That(workflow, Does.Not.Contain("net8.0-windows"));
+        }
+
+        [Test]
         public void DeployLocalPlugin_WhenDeployFlagIsNotProvided_DeploysToConfiguredPluginDirectory() {
             var repoRoot = FindRepoRoot();
             var tempRoot = Path.Combine(repoRoot, "NINA.Plugins.Test", "TestOutput", Guid.NewGuid().ToString("N"));

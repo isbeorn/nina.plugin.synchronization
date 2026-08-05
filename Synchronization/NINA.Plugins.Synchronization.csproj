@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <OutputType>Library</OutputType>
     <RootNamespace>Synchronization</RootNamespace>
     <AssemblyName>Synchronization</AssemblyName>
@@ -14,19 +14,10 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="ReachFramework" />
-    <Reference Include="System.Net" />
-    <Reference Include="System.Printing" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\Synchronization.Service\NINA.Plugins.Synchronization.Service.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Grpc.Tools" Version="2.58.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="NINA.Plugin" Version="3.0.0.1056-nightly" />
+    <PackageReference Include="NINA.Plugin" Version="3.3.0.1053-nightly" />
   </ItemGroup>
   <PropertyGroup>
     <DeployToNinaLocal Condition="'$(DeployToNinaLocal)' == ''">true</DeployToNinaLocal>
