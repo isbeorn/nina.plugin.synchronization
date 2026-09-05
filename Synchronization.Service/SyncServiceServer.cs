@@ -60,7 +60,7 @@ namespace Synchronization.Service {
 
         private void SetStatus(string source, string message) {
             lock (lockobj) {
-                if (statusBySource.ContainsKey(source) && string.IsNullOrWhiteSpace(message)) {
+                if (string.IsNullOrWhiteSpace(message)) {
                     statusBySource.Remove(source);
                     return;
                 }
