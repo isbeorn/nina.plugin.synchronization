@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## Version 1.1.1.0
+- Fixed stale completion state allowing an instance to skip a later synchronized wait or dither and leave other instances waiting until timeout
+- Fixed repeated initialization and sequence cloning changing registrations belonging to other synchronization instructions
+- Keep synchronization registration and heartbeat active until an executing instruction finishes, including when its container is detached
+
 ## Version 1.1.0.0
 - Updated the plugin to N.I.N.A. 3.3 nightly and .NET 10
 - Updated the gRPC and protobuf runtime dependencies to match N.I.N.A. 3.3

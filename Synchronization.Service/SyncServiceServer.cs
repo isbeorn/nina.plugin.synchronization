@@ -287,6 +287,8 @@ namespace Synchronization.Service {
             lock (lockobj) {
                 Logger.Info($"Client {request.Clientid} is announcing to sync");
 
+                // A previous round's completion must not release this new announcement.
+                RemoveClientReleasedFromCompletedSync(request.Clientid, request.Source);
                 AddClientWaitingForSync(request.Clientid, request.Canlead, request.Source);
                 RefreshWaitingStatus(request.Source);
                 return new Empty();
@@ -359,28 +361,24 @@ namespace Synchronization.Service {
 
             try {
                 if (TryGetCompletedSyncLeader(request.Clientid, request.Source, out _)) {
-                    RemoveClientReleasedFromCompletedSync(request.Clientid, request.Source);
-                    RemoveClientWaitingForSync(request.Clientid, request.Source);
                     return new Empty();
                 }
 
                 while (syncInProgress[request.Source] && SyncLeaderIsAlive(request.Source)) {
                     await Task.Delay(10, context.CancellationToken);
                     if (TryGetCompletedSyncLeader(request.Clientid, request.Source, out _)) {
-                        RemoveClientReleasedFromCompletedSync(request.Clientid, request.Source);
-                        RemoveClientWaitingForSync(request.Clientid, request.Source);
                         return new Empty();
                     }
                 }
-            } catch (OperationCanceledException) {
-                RemoveClientReleasedFromCompletedSync(request.Clientid, request.Source);
-                RemoveClientWaitingForSync(request.Clientid, request.Source);
-                throw;
+
+                return new Empty();
+            } finally {
+                lock (lockobj) {
+                    // Completion can arrive after the last lookup but before the loop exits.
+                    RemoveClientReleasedFromCompletedSync(request.Clientid, request.Source);
+                    RemoveClientWaitingForSync(request.Clientid, request.Source);
+                }
             }
-
-            RemoveClientWaitingForSync(request.Clientid, request.Source);
-
-            return new Empty();
         }
 
         public bool SyncLeaderIsAlive(string source) {

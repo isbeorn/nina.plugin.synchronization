@@ -36,6 +36,7 @@ namespace Synchronization.Instructions {
         private IGuiderMediator guiderMediator;
         private IImageHistoryVM history;
         private IProfileService profileService;
+        private readonly SyncRegistration registration;
 
         [ImportingConstructor]
         public SynchronizedDither(IGuiderMediator guiderMediator, IImageHistoryVM history, IProfileService profileService) : base() {
@@ -48,6 +49,7 @@ namespace Synchronization.Instructions {
             var assembly = this.GetType().Assembly;
             var id = assembly.GetCustomAttribute<GuidAttribute>().Value;
             this.pluginSettings = new PluginOptionsAccessor(profileService, Guid.Parse(id));
+            registration = new SyncRegistration(client, nameof(SynchronizedDither));
         }
 
         private SynchronizedDither(SynchronizedDither cloneMe) : this(cloneMe.guiderMediator, cloneMe.history, cloneMe.profileService) {
@@ -109,7 +111,7 @@ namespace Synchronization.Instructions {
 
         public override void Initialize() {
             try {
-                client.RegisterSync(nameof(SynchronizedDither));
+                registration.Initialize();
             } catch (Exception ex) {
                 Logger.Error(ex);
             }
@@ -117,7 +119,7 @@ namespace Synchronization.Instructions {
 
         public override void Teardown() {
             try {
-                client.UnregisterSync(nameof(SynchronizedDither));
+                registration.Teardown();
             } catch (Exception ex) {
                 Logger.Error(ex);
             }
@@ -134,6 +136,8 @@ namespace Synchronization.Instructions {
             var announced = false;
             var syncCompleted = false;
 
+            token.ThrowIfCancellationRequested();
+            registration.BeginExecution();
             try {
                 if (AfterExposures > 0) {
                     var waitTimeout = TimeSpan.FromSeconds(pluginSettings.GetValueInt32(nameof(SynchronizationPlugin.DitherWaitTimeout), 300));
@@ -195,6 +199,11 @@ namespace Synchronization.Instructions {
                     } catch (Exception ex) {
                         Logger.Error("Failed to withdraw from synchronized dither", ex);
                     }
+                }
+                try {
+                    registration.EndExecution();
+                } catch (Exception ex) {
+                    Logger.Error("Failed to release synchronized dither registration", ex);
                 }
                 progress?.Report(new ApplicationStatus() { Status = "" });
             }

@@ -25,6 +25,7 @@ namespace Synchronization.Instructions {
     internal class SynchronizedWait : SequenceItem {
         private IProfileService profileService;
         private PluginOptionsAccessor pluginSettings;
+        private readonly SyncRegistration registration;
 
         [ImportingConstructor]
         public SynchronizedWait(IProfileService profileService) : base() {
@@ -33,6 +34,7 @@ namespace Synchronization.Instructions {
             var assembly = this.GetType().Assembly;
             var id = assembly.GetCustomAttribute<GuidAttribute>().Value;
             this.pluginSettings = new PluginOptionsAccessor(profileService, Guid.Parse(id));
+            registration = new SyncRegistration(client, nameof(SynchronizedWait));
         }
         private SynchronizedWait(SynchronizedWait cloneMe) : this(cloneMe.profileService) {
             CopyMetaData(cloneMe);
@@ -54,7 +56,7 @@ namespace Synchronization.Instructions {
 
         public override void Initialize() {
             try {
-                client.RegisterSync(nameof(SynchronizedWait));
+                registration.Initialize();
             } catch (Exception ex) {
                 Logger.Error(ex);
             }
@@ -62,7 +64,7 @@ namespace Synchronization.Instructions {
 
         public override void Teardown() {
             try {
-                client.UnregisterSync(nameof(SynchronizedWait));
+                registration.Teardown();
             } catch (Exception ex) {
                 Logger.Error(ex);
             }
@@ -77,6 +79,8 @@ namespace Synchronization.Instructions {
             var announced = false;
             var syncCompleted = false;
 
+            token.ThrowIfCancellationRequested();
+            registration.BeginExecution();
             try {
                 var waitTimeout = TimeSpan.FromSeconds(pluginSettings.GetValueInt32(nameof(SynchronizationPlugin.DitherWaitTimeout), 300));
 
@@ -137,6 +141,11 @@ namespace Synchronization.Instructions {
                     } catch (Exception ex) {
                         Logger.Error("Failed to withdraw from synchronized wait", ex);
                     }
+                }
+                try {
+                    registration.EndExecution();
+                } catch (Exception ex) {
+                    Logger.Error("Failed to release synchronized wait registration", ex);
                 }
                 progress?.Report(new ApplicationStatus() { Status = "" });
             }
